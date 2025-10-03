@@ -1,0 +1,38 @@
+{
+  "kind": "collectionType",
+  "collectionName": "permisions",
+  "info": {
+    "singularName": "permision",
+    "pluralName": "permisions",
+    "displayName": "permision"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "de": {
+      "type": "date"
+    },
+    "a": {
+      "type": "date"
+    },
+    "duree": {
+      "type": "string"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "exceptionable",
+        "vacancy",
+        "relax"
+      ]
+    },
+    "stagiaires": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::stagiaire.stagiaire",
+      "mappedBy": "permision"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "kind": "collectionType",
+  "collectionName": "stagiaires",
+  "info": {
+    "singularName": "stagiaire",
+    "pluralName": "stagiaires",
+    "displayName": "stagiaire"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "cin": {
+      "type": "string"
+    },
+    "mle": {
+      "type": "string"
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "grade": {
+      "type": "enumeration",
+      "enum": [
+        "cl/2",
+        "cl/1",
+        "caporal",
+        "c/c",
+        "sgt",
+        "sgt/c",
+        "adj",
+        "adj/c"
+      ]
+    },
+    "consultations": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::consultation.consultation",
+      "mappedBy": "stagiaire"
+    },
+    "permision": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::permision.permision",
+      "inversedBy": "stagiaires"
+    },
+    "punitions": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::punition.punition",
+      "mappedBy": "stagiaires"
+    },
+    "remarques": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::remarque.remarque",
+      "mappedBy": "stagiaire"
+    },
+    "specialite": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::specialite.specialite",
+      "inversedBy": "stagiaires"
+    },
+    "stage": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::stage.stage",
+      "inversedBy": "stagiaires"
+    }
+  }
+}

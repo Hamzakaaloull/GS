@@ -1,0 +1,27 @@
+{
+  "kind": "collectionType",
+  "collectionName": "specialites",
+  "info": {
+    "singularName": "specialite",
+    "pluralName": "specialites",
+    "displayName": "specialite"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "stagiaires": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::stagiaire.stagiaire",
+      "mappedBy": "specialite"
+    }
+  }
+}
