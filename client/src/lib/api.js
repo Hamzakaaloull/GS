@@ -1,143 +1,55 @@
-// src/lib/api.js
-const API_BASE = process.env.NEXT_PUBLIC_STRAPI_API_URL || "http://localhost:1337";
-
-function authHeaders(extra = {}) {
-  if (typeof window === "undefined") return extra;
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}`, ...extra } : extra;
-}
+// /src/lib/api.js
+const API_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
 
 /**
- * Upload a file to Strapi (v5): returns the uploaded file object (data[0])
- * Note: Strapi v5 requires upload first then reference the file id/documentId in the entry creation.
+ * fetchConsultations - جلب الاستشارات من Strapi مع populate للعلاقة file و stagiaire
+ * تُعيد مصفوفة عناصر كل منها: { id, date, note, file, stagiaire }
  */
-export async function uploadFile(file) {
-  const fd = new FormData();
-  fd.append("files", file);
+export async function fetchConsultations(token) {
+  const headers = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}/api/upload`, {
-    method: "POST",
-    headers: authHeaders(), // do NOT set Content-Type, browser will set the boundary
-    body: fd,
+  const res = await fetch(`${API_URL}/api/consultations?populate=stagiaire,file`, {
+    method: "GET",
+    headers,
+    cache: "no-store",
   });
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error("Upload failed: " + text);
+    throw new Error(`Failed to fetch consultations: ${res.status} ${text}`);
   }
 
   const json = await res.json();
-  // return first uploaded file info
-  if (Array.isArray(json.data) && json.data.length > 0) return json.data[0];
-  // fallback
-  return json.data || json;
-}
 
-/**
- * Get consultations list (populate stagiaire and file)
- * Uses populate=* for simplicity (1 level deep) but you can customize params.
- */
-export async function fetchConsultations() {
-  const res = await fetch(`${API_BASE}/api/consultations?populate=stagiaire,file`, {
-    headers: authHeaders(),
+  // Normalize response: handle multiple Strapi shapes robustly
+  let rawItems = [];
+  if (Array.isArray(json)) rawItems = json;
+  else if (Array.isArray(json.data)) rawItems = json.data;
+  else if (Array.isArray(json.results)) rawItems = json.results;
+  else if (Array.isArray(json.items)) rawItems = json.items;
+
+  const items = rawItems.map((it) => {
+    // support both shapes: {id, attributes} and flat {id, date,...}
+    const payload = it.attributes ? { id: it.id, ...it.attributes } : { id: it.id || it._id || null, ...it };
+    // handle stagiaire populate
+    let stagiaire = null;
+    if (payload.stagiaire) {
+      if (payload.stagiaire.data) {
+        const s = payload.stagiaire.data;
+        stagiaire = s.attributes ? { id: s.id, ...s.attributes } : { id: s.id, ...s };
+      } else stagiaire = payload.stagiaire;
+    }
+    // handle file populate (keep as-is)
+    const file = payload.file && payload.file.data ? payload.file.data : payload.file || null;
+    return {
+      id: payload.id,
+      date: payload.date || payload.datetime || payload.createdAt || null,
+      note: payload.note || "",
+      file,
+      stagiaire,
+    };
   });
-  if (!res.ok) throw new Error("Failed fetching consultations");
-  const json = await res.json();
-  return json.data || [];
-}
 
-/**
- * Fetch stagiaires minimal list for selects
- */
-export async function fetchStagiaires() {
-  const res = await fetch(`${API_BASE}/api/stagiaires?fields=first_name,last_name,mle`, {
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error("Failed fetching stagiaires");
-  const json = await res.json();
-  return json.data || [];
-}
-
-/**
- * Create consultation: payload = { date, note, stagiaireDocumentId OR stagiaire (id), fileDocumentId (optional) }
- */
-export async function createConsultation(payload) {
-  // Strapi v5 expects body: { data: { /* fields */ } }
-  const body = { data: {} };
-  if (payload.date) body.data.date = payload.date;
-  if (payload.note !== undefined) body.data.note = payload.note;
-  // relation to stagiaire: may be documentId string or numeric id
-  if (payload.stagiaire) {
-    body.data.stagiaire = payload.stagiaire;
-  }
-  // attach uploaded file (pass its documentId or id depending on your backend)
-  if (payload.fileDocumentId) {
-    // for single media field, assign the documentId (Strapi may accept id or documentId)
-    body.data.file = payload.fileDocumentId;
-  }
-  const res = await fetch(`${API_BASE}/api/consultations`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders(),
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error("Create consultation failed: " + text);
-  }
-  return res.json();
-}
-
-/**
- * Update consultation by documentId (Strapi v5): idOrDocumentId should be documentId string if your backend needs that.
- * payload same shape as createConsultation
- */
-export async function updateConsultation(documentId, payload) {
-  const body = { data: {} };
-  if (payload.date) body.data.date = payload.date;
-  if (payload.note !== undefined) body.data.note = payload.note;
-  if (payload.stagiaire) body.data.stagiaire = payload.stagiaire;
-  if (payload.fileDocumentId !== undefined) body.data.file = payload.fileDocumentId;
-
-  const res = await fetch(`${API_BASE}/api/consultations/${documentId}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders(),
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error("Update failed: " + text);
-  }
-  return res.json();
-}
-
-/**
- * Delete consultation by documentId
- */
-export async function deleteConsultation(documentId) {
-  const res = await fetch(`${API_BASE}/api/consultations/${documentId}`, {
-    method: "DELETE",
-    headers: authHeaders(),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error("Delete failed: " + text);
-  }
-  return res.json();
-}
-
-/**
- * fetch current user profile (for ProfileView)
- */
-export async function fetchCurrentUser() {
-  const res = await fetch(`${API_BASE}/api/users/me`, {
-    headers: authHeaders(),
-  });
-  if (!res.ok) return null;
-  return res.json();
+  return items;
 }

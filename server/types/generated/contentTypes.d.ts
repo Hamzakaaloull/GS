@@ -430,6 +430,44 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiBrigadeBrigade extends Struct.CollectionTypeSchema {
+  collectionName: 'brigades';
+  info: {
+    displayName: 'brigade';
+    pluralName: 'brigades';
+    singularName: 'brigade';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    effictif: Schema.Attribute.Integer;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::brigade.brigade'
+    > &
+      Schema.Attribute.Private;
+    nom: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    specialite: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::specialite.specialite'
+    >;
+    stage: Schema.Attribute.Relation<'manyToOne', 'api::stage.stage'>;
+    stagiaires: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::stagiaire.stagiaire'
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiConsultationConsultation
   extends Struct.CollectionTypeSchema {
   collectionName: 'consultations';
@@ -579,6 +617,7 @@ export interface ApiSpecialiteSpecialite extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    brigades: Schema.Attribute.Relation<'oneToMany', 'api::brigade.brigade'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -591,6 +630,7 @@ export interface ApiSpecialiteSpecialite extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     name: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
+    stages: Schema.Attribute.Relation<'manyToMany', 'api::stage.stage'>;
     stagiaires: Schema.Attribute.Relation<
       'oneToMany',
       'api::stagiaire.stagiaire'
@@ -612,6 +652,7 @@ export interface ApiStageStage extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    brigades: Schema.Attribute.Relation<'oneToMany', 'api::brigade.brigade'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -622,6 +663,10 @@ export interface ApiStageStage extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     name: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
+    specialites: Schema.Attribute.Relation<
+      'manyToMany',
+      'api::specialite.specialite'
+    >;
     stagiaires: Schema.Attribute.Relation<
       'oneToMany',
       'api::stagiaire.stagiaire'
@@ -644,6 +689,7 @@ export interface ApiStagiaireStagiaire extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    brigade: Schema.Attribute.Relation<'manyToOne', 'api::brigade.brigade'>;
     cin: Schema.Attribute.String;
     consultations: Schema.Attribute.Relation<
       'oneToMany',
@@ -652,10 +698,28 @@ export interface ApiStagiaireStagiaire extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    date_naissance: Schema.Attribute.Date;
     first_name: Schema.Attribute.String;
     grade: Schema.Attribute.Enumeration<
-      ['cl/2', 'cl/1', 'caporal', 'c/c', 'sgt', 'sgt/c', 'adj', 'adj/c']
+      [
+        'Soldat  de 2e classe',
+        'Soldat  de 1re classe',
+        'Caporal Adjoint',
+        'Caporal-chef Police',
+        'Sergent',
+        'Sergent-chef',
+        'Sergent-major',
+        'Adjudant',
+        'Adjudant-chef',
+        'Sous-lieutenant',
+        'Lieutenant',
+        'Capitaine',
+        'Commandant',
+        'Lieutenant-colonel',
+        'Colonel (plein)',
+      ]
     >;
+    groupe_sanguaine: Schema.Attribute.String;
     last_name: Schema.Attribute.String;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -668,6 +732,8 @@ export interface ApiStagiaireStagiaire extends Struct.CollectionTypeSchema {
       'manyToOne',
       'api::permision.permision'
     >;
+    phone: Schema.Attribute.String;
+    profile: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
     publishedAt: Schema.Attribute.DateTime;
     punitions: Schema.Attribute.Relation<
       'manyToMany',
@@ -1153,6 +1219,7 @@ export interface PluginUsersPermissionsUser
       Schema.Attribute.SetMinMaxLength<{
         minLength: 6;
       }>;
+    isActive: Schema.Attribute.Boolean;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -1195,6 +1262,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::brigade.brigade': ApiBrigadeBrigade;
       'api::consultation.consultation': ApiConsultationConsultation;
       'api::permision.permision': ApiPermisionPermision;
       'api::punition.punition': ApiPunitionPunition;

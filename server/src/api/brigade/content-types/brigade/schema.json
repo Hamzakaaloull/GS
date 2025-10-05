@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "brigades",
+  "info": {
+    "singularName": "brigade",
+    "pluralName": "brigades",
+    "displayName": "brigade"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "effictif": {
+      "type": "integer"
+    },
+    "nom": {
+      "type": "string"
+    },
+    "specialite": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::specialite.specialite",
+      "inversedBy": "brigades"
+    },
+    "stagiaires": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::stagiaire.stagiaire",
+      "mappedBy": "brigade"
+    },
+    "stage": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::stage.stage",
+      "inversedBy": "brigades"
+    }
+  }
+}

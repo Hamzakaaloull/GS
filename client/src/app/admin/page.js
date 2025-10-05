@@ -1,7 +1,7 @@
 export default function Admin() {
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
+    <div className="">
+      <h1 className="">Admin Dashboard</h1>
       <p>Welcome to the admin dashboard. Here you can manage the application.</p>
     </div>
   );

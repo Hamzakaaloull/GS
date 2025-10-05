@@ -75,6 +75,9 @@
         "videos",
         "audios"
       ]
+    },
+    "isActive": {
+      "type": "boolean"
     }
   }
 }

@@ -26,14 +26,21 @@
     "grade": {
       "type": "enumeration",
       "enum": [
-        "cl/2",
-        "cl/1",
-        "caporal",
-        "c/c",
-        "sgt",
-        "sgt/c",
-        "adj",
-        "adj/c"
+        "Soldat  de 2e classe",
+        "Soldat  de 1re classe",
+        "Caporal Adjoint",
+        "Caporal-chef Police",
+        "Sergent",
+        "Sergent-chef",
+        "Sergent-major",
+        "Adjudant",
+        "Adjudant-chef",
+        "Sous-lieutenant",
+        "Lieutenant",
+        "Capitaine",
+        "Commandant",
+        "Lieutenant-colonel",
+        "Colonel (plein)"
       ]
     },
     "consultations": {
@@ -70,6 +77,31 @@
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::stage.stage",
+      "inversedBy": "stagiaires"
+    },
+    "date_naissance": {
+      "type": "date"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "groupe_sanguaine": {
+      "type": "string"
+    },
+    "profile": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "brigade": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::brigade.brigade",
       "inversedBy": "stagiaires"
     }
   }

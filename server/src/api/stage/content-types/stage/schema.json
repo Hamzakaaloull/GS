@@ -28,6 +28,18 @@
       "relation": "oneToMany",
       "target": "api::stagiaire.stagiaire",
       "mappedBy": "stage"
+    },
+    "specialites": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::specialite.specialite",
+      "mappedBy": "stages"
+    },
+    "brigades": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::brigade.brigade",
+      "mappedBy": "stage"
     }
   }
 }
