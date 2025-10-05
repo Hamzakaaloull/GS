@@ -11,21 +11,24 @@
   },
   "pluginOptions": {},
   "attributes": {
-    "de": {
+    "start_date": {
       "type": "date"
     },
-    "a": {
+    "end_date": {
       "type": "date"
-    },
-    "duree": {
-      "type": "string"
     },
     "type": {
       "type": "enumeration",
       "enum": [
-        "exceptionable",
-        "vacancy",
-        "relax"
+        "Permission ordinaire",
+        "Permission exceptionnelle",
+        "Permission de longue durée",
+        "Permission pour convenances personnelles",
+        "Permission de convalescence",
+        "Permission pour raisons familiales graves",
+        "Permission libérale",
+        "Permission d’éloignement",
+        "Permission d’études"
       ]
     },
     "stagiaires": {
@@ -33,6 +36,9 @@
       "relation": "oneToMany",
       "target": "api::stagiaire.stagiaire",
       "mappedBy": "permision"
+    },
+    "duration": {
+      "type": "integer"
     }
   }
 }

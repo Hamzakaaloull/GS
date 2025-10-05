@@ -514,12 +514,11 @@ export interface ApiPermisionPermision extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
-    a: Schema.Attribute.Date;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    de: Schema.Attribute.Date;
-    duree: Schema.Attribute.String;
+    duration: Schema.Attribute.Integer;
+    end_date: Schema.Attribute.Date;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -531,7 +530,20 @@ export interface ApiPermisionPermision extends Struct.CollectionTypeSchema {
       'oneToMany',
       'api::stagiaire.stagiaire'
     >;
-    type: Schema.Attribute.Enumeration<['exceptionable', 'vacancy', 'relax']>;
+    start_date: Schema.Attribute.Date;
+    type: Schema.Attribute.Enumeration<
+      [
+        'Permission ordinaire',
+        'Permission exceptionnelle',
+        'Permission de longue dur\u00E9e',
+        'Permission pour convenances personnelles',
+        'Permission de convalescence',
+        'Permission pour raisons familiales graves',
+        'Permission lib\u00E9rale',
+        'Permission d\u2019\u00E9loignement',
+        'Permission d\u2019\u00E9tudes',
+      ]
+    >;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
