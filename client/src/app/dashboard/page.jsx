@@ -28,7 +28,7 @@ import Permission from "../../components/Permission/page.js"
 import Consultation from "../../components/Consultation/page"
 import Specialite from "../../components/Specialite/page" 
 import Brigade from "../../components/brigade/page"
-
+import Assistance from "../../components/Assistance/page" // أضف هذا الاستيراد
 
 function MainContent() {
 
@@ -53,6 +53,8 @@ function MainContent() {
         return <Specialite />
       case 'Brigade':
         return <Brigade />
+      case 'Assistance': // أضف هذا الحالة
+        return <Assistance />
       default:
         return <UsersPage />
     }

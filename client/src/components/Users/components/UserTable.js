@@ -72,10 +72,11 @@ export default function UserTable({
                       {user.username?.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div className="flex flex-col">
-                    <span className="font-medium text-foreground">{user.username}</span>
-                    <span className="text-xs text-muted-foreground">{user.email}</span>
-                  </div>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-foreground">{user.username}</span>
+                    <span className="text-sm text-muted-foreground">
+                      Create Date : {new Date(user.createdAt).toLocaleDateString()} 
+                      </span></div>
                 </div>
               </td>
               <td className="p-4">

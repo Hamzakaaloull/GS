@@ -151,17 +151,17 @@ export function AppSidebar(props) {
       isActive: activeComponent === "Consultation",
       onClick: () => setActiveComponent("Consultation")
     },
-   
-   
   ]
 
-  const navSecondary = [{ title: "Support",
-     url: "#",
-      icon: LifeBuoy
-     }]
-  const projects = [{ name: "Design Engineering",
+  // const navSecondary = [{ title: "Support",
+  //    url: "#",
+  //     icon: LifeBuoy
+  //    }]
+  const projects = [{ title: "Assistance",
      url: "#", 
-     icon: Frame , 
+     icon: LifeBuoy , 
+     isActive: activeComponent === "Assistance",
+      onClick: () => setActiveComponent("Assistance")
      }]
 
   useEffect(() => {
@@ -265,7 +265,7 @@ export function AppSidebar(props) {
       <SidebarContent>
         <NavMain items={navMain} />
         <NavProjects projects={projects} />
-        <NavSecondary items={navSecondary} className="mt-auto" />
+        {/* <NavSecondary items={navSecondary} className="mt-auto" /> */}
       </SidebarContent>
 
       <SidebarFooter>

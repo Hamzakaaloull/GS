@@ -81,7 +81,7 @@ export function NavUser({
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate text-xs">{user.role?.name}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -101,8 +101,8 @@ export function NavUser({
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
-                  
-                  <span className="truncate text-xs text-green-600">
+                  <span className="truncate text-xs">{user.email}</span>
+                  <span className= {user.raw?.isActive ? "truncate text-xs text-green-600" : "truncate text-xs text-red-600"}>
                     {user.raw?.isActive ? "En ligne" : "Hors ligne"}
                   </span>
                 </div>
