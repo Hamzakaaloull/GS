@@ -36,14 +36,14 @@ export function NavUser({
 {
   const router = useRouter()
   const { isMobile } = useSidebar()
-
+ const API = process.env.NEXT_PUBLIC_STRAPI_API_URL;
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem("token")
       
       // تحديث حالة isActive إلى false في Strapi
       if (user.raw && user.raw.id) {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${user.raw.id}`, {
+        await fetch(`${API}/api/users/${user.raw.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -101,7 +101,7 @@ export function NavUser({
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  
                   <span className="truncate text-xs text-green-600">
                     {user.raw?.isActive ? "En ligne" : "Hors ligne"}
                   </span>
@@ -116,10 +116,7 @@ export function NavUser({
                 <BadgeCheck className="w-4 h-4 mr-2" />
                 Compte
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell className="w-4 h-4 mr-2" />
-                Notifications
-              </DropdownMenuItem>
+            
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">

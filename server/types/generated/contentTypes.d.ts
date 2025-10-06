@@ -444,7 +444,7 @@ export interface ApiBrigadeBrigade extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    effictif: Schema.Attribute.Integer;
+    effectif: Schema.Attribute.Integer;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -612,6 +612,7 @@ export interface ApiRemarqueRemarque extends Struct.CollectionTypeSchema {
       'manyToOne',
       'api::stagiaire.stagiaire'
     >;
+    type: Schema.Attribute.Enumeration<['Positive', 'Negative']>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

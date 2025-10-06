@@ -11,7 +11,7 @@
   },
   "pluginOptions": {},
   "attributes": {
-    "effictif": {
+    "effectif": {
       "type": "integer"
     },
     "nom": {

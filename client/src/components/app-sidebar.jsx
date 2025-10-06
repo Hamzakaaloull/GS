@@ -94,12 +94,12 @@ export function AppSidebar(props) {
       isActive: activeComponent === "Users",
       onClick: () => setActiveComponent("Users")
     },
-    { 
-      title: "Stagiaires", 
+     { 
+      title: "Specialite", 
       url: "#", 
-      icon: Users, 
-      isActive: activeComponent === "Stagiaires",
-      onClick: () => setActiveComponent("Stagiaires")
+      icon: Library, 
+      isActive: activeComponent === "Specialite",
+      onClick: () => setActiveComponent("Specialite")
     },
     { 
       title: "Stage", 
@@ -108,6 +108,21 @@ export function AppSidebar(props) {
       isActive: activeComponent === "Stage",
       onClick: () => setActiveComponent("Stage")
     },
+     { 
+      title: "Brigade", 
+      url: "#", 
+      icon: Group, 
+      isActive: activeComponent === "Brigade",
+      onClick: () => setActiveComponent("Brigade")
+    },
+    { 
+      title: "Stagiaires", 
+      url: "#", 
+      icon: Users, 
+      isActive: activeComponent === "Stagiaires",
+      onClick: () => setActiveComponent("Stagiaires")
+    },
+    
     { 
       title: "Remarque", 
       url: "#", 
@@ -136,24 +151,18 @@ export function AppSidebar(props) {
       isActive: activeComponent === "Consultation",
       onClick: () => setActiveComponent("Consultation")
     },
-    { 
-      title: "Specialite", 
-      url: "#", 
-      icon: Library, 
-      isActive: activeComponent === "Specialite",
-      onClick: () => setActiveComponent("Specialite")
-    },
-    { 
-      title: "Brigade", 
-      url: "#", 
-      icon: Group, 
-      isActive: activeComponent === "Brigade",
-      onClick: () => setActiveComponent("Brigade")
-    },
+   
+   
   ]
 
-  const navSecondary = [{ title: "Support", url: "#", icon: LifeBuoy }]
-  const projects = [{ name: "Design Engineering", url: "#", icon: Frame }]
+  const navSecondary = [{ title: "Support",
+     url: "#",
+      icon: LifeBuoy
+     }]
+  const projects = [{ name: "Design Engineering",
+     url: "#", 
+     icon: Frame , 
+     }]
 
   useEffect(() => {
     let mounted = true
@@ -239,12 +248,13 @@ export function AppSidebar(props) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Command className="size-4" />
-                </div>
+               <img src="https://upload.wikimedia.org/wikipedia/commons/a/a1/Moroccan_Armed_Force.png" alt="Logo" className="w-6 h-auto object-contain mr-1" />
+                {/* <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                </div> */}
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium"></span>
-                  <span className="truncate text-xs">Gestion des Stagiaires</span>
+                  <span className="truncate font-medium ">Gestion</span>
+                  
+                  <span className="truncate text-sm ">Des Stagiaires</span>
                 </div>
               </a>
             </SidebarMenuButton>

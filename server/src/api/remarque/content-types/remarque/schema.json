@@ -25,6 +25,13 @@
       "relation": "manyToOne",
       "target": "api::stagiaire.stagiaire",
       "inversedBy": "remarques"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "Positive",
+        "Negative"
+      ]
     }
   }
 }
