@@ -1,7 +1,7 @@
 // app/brigades/page.js
 "use client";
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Users, BookOpen, Calendar } from "lucide-react";
+import { Plus, Search, Users, BookOpen, Calendar, ChevronDown } from "lucide-react";
 import BrigadeTable from "./components/BrigadeTable";
 import BrigadeForm from "./components/BrigadeForm";
 import BrigadeDetailDialog from "./components/BrigadeDetailDialog";
@@ -14,14 +14,16 @@ export default function BrigadesPage() {
   const [stagiaires, setStagiaires] = useState([]);
   const [specialites, setSpecialites] = useState([]);
   const [stages, setStages] = useState([]);
+  const [brigadeNames, setBrigadeNames] = useState([]);
   const [open, setOpen] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedBrigade, setSelectedBrigade] = useState(null);
   const [editingBrigade, setEditingBrigade] = useState(null);
   const [formData, setFormData] = useState({
-    nom: "",
+    year: "",
     effectif: "",
+    brigade_name: null,
     specialite: null,
     stagiaires: [],
     stage: null
@@ -37,19 +39,23 @@ export default function BrigadesPage() {
     severity: "success" 
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [yearFilter, setYearFilter] = useState("");
+  const [selectedBrigadeName, setSelectedBrigadeName] = useState("");
+  const [isBrigadeDropdownOpen, setIsBrigadeDropdownOpen] = useState(false);
 
   useEffect(() => {
     fetchBrigades();
     fetchStagiaires();
     fetchSpecialites();
     fetchStages();
+    fetchBrigadeNames();
   }, []);
 
   async function fetchBrigades() {
     setLoading((p) => ({ ...p, global: true }));
     try {
       const res = await fetch(
-        `${API_URL}/api/brigades?populate=stagiaires&populate=specialite&populate=stage`,
+        `${API_URL}/api/brigades?populate=stagiaires&populate=specialite&populate=stage&populate=brigade_name`,
         { 
           headers: { 
             Authorization: `Bearer ${localStorage.getItem("token")}` 
@@ -117,13 +123,36 @@ export default function BrigadesPage() {
     }
   }
 
+  async function fetchBrigadeNames() {
+    try {
+      const res = await fetch(
+        `${API_URL}/api/brigade-names`,
+        { 
+          headers: { 
+            Authorization: `Bearer ${localStorage.getItem("token")}` 
+          } 
+        }
+      );
+      const data = await res.json();
+      setBrigadeNames(data.data || []);
+    } catch (error) {
+      console.error("Error fetching brigade names:", error);
+    }
+  }
+
   function handleOpen(brigade = null) {
     if (brigade) {
       setEditingBrigade(brigade.documentId);
       
+      // إصلاح مشكلة السنة - استخدام السنة مباشرة بدون تحويل
+      const year = brigade.year 
+        ? extractYearFromDate(brigade.year)
+        : "";
+      
       setFormData({
-        nom: brigade.nom || "",
+        year: year,
         effectif: brigade.effectif?.toString() || "",
+        brigade_name: brigade.brigade_name?.documentId || null,
         specialite: brigade.specialite?.documentId || null,
         stagiaires: brigade.stagiaires?.map(s => s.documentId) || [],
         stage: brigade.stage?.documentId || null
@@ -131,8 +160,9 @@ export default function BrigadesPage() {
     } else {
       setEditingBrigade(null);
       setFormData({
-        nom: "",
+        year: "",
         effectif: "",
+        brigade_name: null,
         specialite: null,
         stagiaires: [],
         stage: null
@@ -146,6 +176,19 @@ export default function BrigadesPage() {
     setDetailOpen(true);
   }
 
+  // دالة لاستخراج السنة من التاريخ بدون مشاكل
+  const extractYearFromDate = (dateString) => {
+    if (!dateString) return "";
+    try {
+      const date = new Date(dateString);
+      // استخدام UTC لتجنب مشاكل المنطقة الزمنية
+      return date.getUTCFullYear().toString();
+    } catch (error) {
+      console.error("Error extracting year from date:", error);
+      return "";
+    }
+  };
+
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading((p) => ({ ...p, submit: true }));
@@ -156,10 +199,14 @@ export default function BrigadesPage() {
       
       const method = editingBrigade ? "PUT" : "POST";
       
+      // إصلاح مشكلة السنة - استخدام UTC لتجنب مشاكل المنطقة الزمنية
+      const yearDate = formData.year ? `${formData.year}-01-01T00:00:00.000Z` : null;
+      
       const requestData = {
         data: {
-          nom: formData.nom,
+          year: yearDate,
           effectif: formData.effectif ? parseInt(formData.effectif) : null,
+          brigade_name: formData.brigade_name ? { connect: [formData.brigade_name] } : { disconnect: [] },
           specialite: formData.specialite ? { connect: [formData.specialite] } : { disconnect: [] },
           stagiaires: {
             connect: formData.stagiaires
@@ -167,6 +214,8 @@ export default function BrigadesPage() {
           stage: formData.stage ? { connect: [formData.stage] } : { disconnect: [] }
         }
       };
+
+      console.log("Submitting data:", JSON.stringify(requestData, null, 2));
 
       const res = await fetch(url, {
         method,
@@ -180,7 +229,10 @@ export default function BrigadesPage() {
       const responseData = await res.json();
 
       if (!res.ok) {
-        throw new Error(responseData.error?.message || "Erreur lors de l'opération");
+        const errorMessage = responseData.error?.message || 
+                            responseData.error?.details?.errors?.map(err => err.message).join(', ') || 
+                            "Erreur lors de l'opération";
+        throw new Error(errorMessage);
       }
 
       await fetchBrigades();
@@ -237,13 +289,28 @@ export default function BrigadesPage() {
     setSnackbar({ open: true, message, severity });
   }
 
-  // Filter brigades based on search
+  // فلترة البريجادات حسب البحث والسنة واسم البريجاد
   const filteredBrigades = brigades.filter((brigade) => {
     const matchesSearch = 
-      (brigade.nom?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+      (brigade.brigade_name?.nom?.toLowerCase() || '').includes(searchQuery.toLowerCase());
     
-    return matchesSearch;
+    // استخدام دالة استخراج السنة المحسنة
+    const brigadeYear = extractYearFromDate(brigade.year);
+    
+    const matchesYear = !yearFilter || 
+      brigadeYear.includes(yearFilter);
+    
+    const matchesBrigadeName = !selectedBrigadeName || 
+      brigade.brigade_name?.nom === selectedBrigadeName;
+    
+    return matchesSearch && matchesYear && matchesBrigadeName;
   });
+
+  // الحصول على قائمة أسماء البريجادات الفريدة
+  const uniqueBrigadeNames = [...new Set(brigades
+    .map(b => b.brigade_name?.nom)
+    .filter(name => name)
+  )].sort();
 
   return (
     <div className="p-6 space-y-6">
@@ -268,16 +335,90 @@ export default function BrigadesPage() {
       <div className="bg-card border border-border rounded-lg p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Search by Name */}
-          <div className="relative md:col-span-2">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <input
               type="text"
-              placeholder="Rechercher par nom de brigade..."
+              placeholder="Rechercher par nom..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
             />
           </div>
+
+          {/* Filter by Brigade Name */}
+          <div className="relative">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsBrigadeDropdownOpen(!isBrigadeDropdownOpen)}
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground text-left flex items-center justify-between"
+              >
+                <span className={selectedBrigadeName ? "text-foreground" : "text-muted-foreground"}>
+                  {selectedBrigadeName || "Tous les noms"}
+                </span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${isBrigadeDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isBrigadeDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-input rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedBrigadeName("");
+                      setIsBrigadeDropdownOpen(false);
+                    }}
+                    className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors border-b border-border ${
+                      !selectedBrigadeName ? 'bg-primary/10 text-primary' : 'text-foreground'
+                    }`}
+                  >
+                    Tous les noms
+                  </button>
+                  {uniqueBrigadeNames.map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedBrigadeName(name);
+                        setIsBrigadeDropdownOpen(false);
+                      }}
+                      className={`w-full px-4 py-2 text-left hover:bg-muted transition-colors border-b border-border last:border-b-0 ${
+                        selectedBrigadeName === name ? 'bg-primary/10 text-primary' : 'text-foreground'
+                      }`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Year Filter */}
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <input
+              type="number"
+              placeholder="Filtrer par année..."
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value)}
+              min="2000"
+              max="2030"
+              className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
+            />
+          </div>
+
+          {/* Clear Filters */}
+          <button
+            onClick={() => {
+              setSearchQuery("");
+              setYearFilter("");
+              setSelectedBrigadeName("");
+            }}
+            className="px-4 py-2 border border-input rounded-lg hover:bg-muted transition-colors text-foreground"
+          >
+            Effacer les filtres
+          </button>
         </div>
       </div>
 
@@ -316,6 +457,8 @@ export default function BrigadesPage() {
         stagiaires={stagiaires}
         specialites={specialites}
         stages={stages}
+        brigadeNames={brigadeNames}
+        fetchBrigadeNames={fetchBrigadeNames}
       />
 
       {/* Brigade Detail Dialog */}

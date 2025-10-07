@@ -74,12 +74,26 @@ export default function BrigadeTable({
     }
   };
 
+  // دالة محسنة لاستخراج السنة من التاريخ
+  const extractYearFromDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      // استخدام UTC لتجنب مشاكل المنطقة الزمنية
+      return date.getUTCFullYear().toString();
+    } catch (error) {
+      console.error("Error extracting year from date:", error);
+      return 'N/A';
+    }
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead className="bg-muted/50">
           <tr>
             <th className="text-left p-4 font-semibold text-foreground">Nom</th>
+            <th className="text-left p-4 font-semibold text-foreground">Année</th>
             <th className="text-left p-4 font-semibold text-foreground">Effectif</th>
             <th className="text-left p-4 font-semibold text-foreground">Spécialité</th>
             <th className="text-left p-4 font-semibold text-foreground">Stagiaires</th>
@@ -99,9 +113,16 @@ export default function BrigadeTable({
                   <MapPin className="h-5 w-5 text-primary" />
                   <div>
                     <div className="font-medium text-foreground">
-                      {brigade.nom}
+                      {brigade.brigade_name?.nom || 'Aucun nom'}
                     </div>
                   </div>
+                </div>
+              </td>
+              
+              {/* Year */}
+              <td className="p-4">
+                <div className="text-foreground font-medium">
+                  {new Date(brigade.year).getFullYear() + 1}
                 </div>
               </td>
               
@@ -117,9 +138,17 @@ export default function BrigadeTable({
               
               {/* Specialite */}
               <td className="p-4">
-                <div className="text-foreground">
-                  {brigade.specialite?.name || 'Aucune'}
-                </div>
+                <div
+  className={`inline-block px-2.5 py-1 rounded-md text-sm transition-all
+    ${
+      brigade.specialite?.name === "Informatique"
+        ? "inline-flex items-center rounded-md bg-green-400/10 px-2 py-1 text-xs font-medium text-green-400 inset-ring inset-ring-green-500/20"
+        : "text-muted-foreground"
+    }`}
+>
+  {brigade.specialite?.name || "Aucune"}
+</div>
+
               </td>
               
               {/* Stagiaires */}
@@ -197,4 +226,4 @@ export default function BrigadeTable({
       </table>
     </div>
   );
-}
+} 

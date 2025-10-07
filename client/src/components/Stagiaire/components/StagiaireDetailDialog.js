@@ -20,6 +20,15 @@ export default function StagiaireDetailDialog({
     }
   };
 
+  const getYearFromDate = (dateString) => {
+    if (!dateString) return 'Non spécifié';
+    try {
+      return new Date(dateString).getFullYear();
+    } catch (error) {
+      return 'Date invalide';
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-card border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -148,7 +157,17 @@ export default function StagiaireDetailDialog({
                       <span className="text-sm text-muted-foreground">Brigade</span>
                     </div>
                     <span className="font-medium text-foreground">
-                      {stagiaire.brigade?.nom || 'Non spécifié'}
+                      {stagiaire.brigade?.brigade_name?.nom || 'Non spécifié'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Année de la brigade</span>
+                    </div>
+                    <span className="font-medium text-foreground">
+                      {getYearFromDate(stagiaire.brigade?.year)}
                     </span>
                   </div>
                 </div>

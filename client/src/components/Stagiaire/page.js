@@ -14,12 +14,13 @@ export default function StagiairesPage() {
   const [specialites, setSpecialites] = useState([]);
   const [stages, setStages] = useState([]);
   const [brigades, setBrigades] = useState([]);
+  const [brigadeNames, setBrigadeNames] = useState([]);
   const [open, setOpen] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedStagiaire, setSelectedStagiaire] = useState(null);
   const [editingStagiaire, setEditingStagiaire] = useState(null);
-  const [originalProfile, setOriginalProfile] = useState(null); // حفظ المرجع القديم عند التحرير
+  const [originalProfile, setOriginalProfile] = useState(null);
   const [formData, setFormData] = useState({
     cin: "",
     mle: "",
@@ -50,13 +51,14 @@ export default function StagiairesPage() {
     stage: "",
     brigade: "",
     grade: "",
+    year: "",
   });
 
   const grades = [
     "Soldat  de 2e classe",
     "Soldat  de 1re classe",
-    "Caporal Adjoint",
-    "Caporal-chef Police",
+    "Caporal ",
+    "Caporal-chef ",
     "Sergent",
     "Sergent-chef",
     "Sergent-major",
@@ -70,18 +72,32 @@ export default function StagiairesPage() {
     "Colonel (plein)",
   ];
 
+  // دالة لاستخراج السنة من التاريخ مع معالجة المنطقة الزمنية
+  const getYearFromDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      // استخدام UTC لتجنب مشاكل المنطقة الزمنية
+      const date = new Date(dateString);
+      return date.getUTCFullYear();
+    } catch (error) {
+      console.error('Error parsing date:', dateString, error);
+      return '';
+    }
+  };
+
   useEffect(() => {
     fetchStagiaires();
     fetchSpecialites();
     fetchStages();
     fetchBrigades();
+    fetchBrigadeNames();
   }, []);
 
   async function fetchStagiaires() {
     setLoading((p) => ({ ...p, global: true }));
     try {
       const res = await fetch(
-        `${API_URL}/api/stagiaires?populate=specialite&populate=stage&populate=brigade&populate=profile`,
+        `${API_URL}/api/stagiaires?populate=specialite&populate=stage&populate=brigade&populate=brigade.brigade_name&populate=profile`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -133,7 +149,7 @@ export default function StagiairesPage() {
 
   async function fetchBrigades() {
     try {
-      const res = await fetch(`${API_URL}/api/brigades?populate=specialite`, {
+      const res = await fetch(`${API_URL}/api/brigades?populate=brigade_name&populate=specialite`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -143,19 +159,34 @@ export default function StagiairesPage() {
       setBrigades(data.data || []);
     } catch (error) {
       console.error("Error fetching brigades:", error);
-      showSnackbar("Erreur lors من تحميل brigades", "error");
+      showSnackbar("Erreur lors du chargement des brigades", "error");
+    }
+  }
+
+  async function fetchBrigadeNames() {
+    try {
+      const res = await fetch(`${API_URL}/api/brigade-names`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await res.json();
+      console.log("BrigadeNames data:", data);
+      setBrigadeNames(data.data || []);
+    } catch (error) {
+      console.error("Error fetching brigade names:", error);
+      showSnackbar("Erreur lors du chargement des noms de brigade", "error");
     }
   }
 
   function handleOpen(stagiaire = null) {
     if (stagiaire) {
-      setEditingStagiaire(stagiaire.documentId);
-
+      setEditingStagiaire(stagiaire.documentId || stagiaire.id);
+      
       const formattedDate = stagiaire.date_naissance
         ? new Date(stagiaire.date_naissance).toISOString().split("T")[0]
         : "";
 
-      // نحفض المرجع القديم للprofile باش نستعمله فـ disconnect إذا تمّ الحذف
       setOriginalProfile(stagiaire.profile || null);
 
       setFormData({
@@ -167,10 +198,10 @@ export default function StagiairesPage() {
         date_naissance: formattedDate,
         phone: stagiaire.phone || "",
         groupe_sanguaine: stagiaire.groupe_sanguaine || "",
-        profile: stagiaire.profile || null, // إما null أو object موجود
-        specialite: stagiaire.specialite?.documentId || null,
-        stage: stagiaire.stage?.documentId || null,
-        brigade: stagiaire.brigade?.documentId || null,
+        profile: stagiaire.profile || null,
+        specialite: stagiaire.specialite?.id || stagiaire.specialite?.documentId || null,
+        stage: stagiaire.stage?.id || stagiaire.stage?.documentId || null,
+        brigade: stagiaire.brigade?.id || stagiaire.brigade?.documentId || null,
       });
     } else {
       setEditingStagiaire(null);
@@ -198,7 +229,6 @@ export default function StagiairesPage() {
     setDetailOpen(true);
   }
 
-  // يقوم بالرفع ويرجع object فيه id و/أو documentId (مرن مع صيغ الرد المختلفة)
   async function handleImageUpload(file) {
     const uploadData = new FormData();
     uploadData.append("files", file);
@@ -212,33 +242,24 @@ export default function StagiairesPage() {
       });
 
       if (!res.ok) {
-        const txt = await res.text();
-        console.error("Upload failed response:", txt);
-        return null;
+        const errorText = await res.text();
+        console.error("Upload failed response:", errorText);
+        throw new Error(`Upload failed: ${res.status}`);
       }
 
       const uploaded = await res.json();
-      // ممكن يجي كـ array مباشرة أو كـ { data: [...] }
-      let fileObj = null;
-      if (Array.isArray(uploaded) && uploaded.length) {
-        fileObj = uploaded[0];
-      } else if (uploaded.data && Array.isArray(uploaded.data) && uploaded.data.length) {
-        fileObj = uploaded.data[0];
-      } else if (uploaded[0]) {
-        fileObj = uploaded[0];
+      
+      let fileData;
+      if (Array.isArray(uploaded)) {
+        fileData = uploaded[0];
+      } else if (uploaded.data && Array.isArray(uploaded.data)) {
+        fileData = uploaded.data[0];
+      } else {
+        fileData = uploaded;
       }
 
-      if (!fileObj) {
-        console.error("Upload: unexpected response format", uploaded);
-        return null;
-      }
+      return fileData.id;
 
-      // نرجع كائن فيه id و documentId باش نقدر نختار الأنسب عند الربط
-      return {
-        id: fileObj.id || null,
-        documentId: fileObj.documentId || null,
-        url: fileObj.url || fileObj.url,
-      };
     } catch (error) {
       console.error("Error uploading image:", error);
       showSnackbar("Erreur lors du téléchargement de l'image", "error");
@@ -250,18 +271,11 @@ export default function StagiairesPage() {
     e.preventDefault();
     setLoading((p) => ({ ...p, submit: true }));
     try {
-      let uploadedFile = null;
+      let profileId = formData.profile;
 
-      // حالة: المستخدم اختار ملف جديد
       if (formData.profile instanceof File) {
-        uploadedFile = await handleImageUpload(formData.profile);
-        if (!uploadedFile) throw new Error("Failed to upload image");
-      } else if (formData.profile && formData.profile.documentId) {
-        // حالة: الملف موجود من قبل (لم يتغيّر)
-        uploadedFile = {
-          id: formData.profile.id || null,
-          documentId: formData.profile.documentId || null,
-        };
+        profileId = await handleImageUpload(formData.profile);
+        if (!profileId) throw new Error("Failed to upload image");
       }
 
       const url = editingStagiaire
@@ -280,51 +294,23 @@ export default function StagiairesPage() {
           date_naissance: formData.date_naissance || null,
           phone: formData.phone || null,
           groupe_sanguaine: formData.groupe_sanguaine || null,
+          ...(formData.specialite && { 
+            specialite: { connect: [formData.specialite] } 
+          }),
+          ...(formData.stage && { 
+            stage: { connect: [formData.stage] } 
+          }),
+          ...(formData.brigade && { 
+            brigade: { connect: [formData.brigade] } 
+          }),
+          ...(profileId && { 
+            profile: { connect: [profileId] } 
+          })
         },
       };
 
-      // === ربط/فصل profile (الصورة) ===
-      if (uploadedFile) {
-        // استعمل numeric id إذا كان متوفر (أكثر توافقاً مع بعض نسخ plugin)
-        if (uploadedFile.id) {
-          requestData.data.profile = { connect: [uploadedFile.id] };
-        } else if (uploadedFile.documentId) {
-          // بديل: longhand object مع documentId
-          requestData.data.profile = { connect: [{ documentId: uploadedFile.documentId }] };
-        }
-      } else if (editingStagiaire && !formData.profile && originalProfile) {
-        // المستخدم حذف الصورة أثناء التعديل => نعمل disconnect للمرجع القديم
-        if (originalProfile.id) {
-          requestData.data.profile = { disconnect: [originalProfile.id] };
-        } else if (originalProfile.documentId) {
-          requestData.data.profile = { disconnect: [{ documentId: originalProfile.documentId }] };
-        }
-      }
-
-      // === علاقات أخرى (specialite, stage, brigade) ===
-      // نستخدم صيغة connect longhand بالـ documentId (إن وُجد)
-      if (formData.specialite) {
-        requestData.data.specialite = { connect: [{ documentId: formData.specialite }] };
-      } else if (editingStagiaire && !formData.specialite) {
-        // إذا حذف المستخدم الاختيار أثناء التعديل، نقطع العلاقة إذا كان موجوداً أصلاً
-        // ملاحظة: إن لم يكن لديك مرجع أصلي محفوظ، هذا لا يقوم بشيء
-      }
-
-      if (formData.stage) {
-        // قد تكون stage مرقّمة أو documentId حسب الـ form; نحاول اكتشاف
-        if (typeof formData.stage === "number") {
-          requestData.data.stage = { connect: [formData.stage] };
-        } else {
-          requestData.data.stage = { connect: [{ documentId: formData.stage }] };
-        }
-      }
-
-      if (formData.brigade) {
-        if (typeof formData.brigade === "number") {
-          requestData.data.brigade = { connect: [formData.brigade] };
-        } else {
-          requestData.data.brigade = { connect: [{ documentId: formData.brigade }] };
-        }
+      if (editingStagiaire && !formData.profile && originalProfile) {
+        requestData.data.profile = { disconnect: [originalProfile.id] };
       }
 
       console.log("Submitting data:", JSON.stringify(requestData, null, 2));
@@ -338,19 +324,20 @@ export default function StagiairesPage() {
         body: JSON.stringify(requestData),
       });
 
-      const responseData = await res.json();
-      console.log("Response:", responseData);
-
       if (!res.ok) {
-        throw new Error(responseData.error?.message || JSON.stringify(responseData));
+        const errorData = await res.json();
+        throw new Error(errorData.error?.message || "Erreur lors de l'opération");
       }
 
       await fetchStagiaires();
       setOpen(false);
-      showSnackbar(editingStagiaire ? "Stagiaire modifié avec succès" : "Stagiaire créé avec succès", "success");
+      showSnackbar(
+        editingStagiaire ? "Stagiaire modifié avec succès" : "Stagiaire créé avec succès", 
+        "success"
+      );
     } catch (err) {
       console.error("Error submitting form:", err);
-      showSnackbar(err.message || "Erreur lors de l'opération", "error");
+      showSnackbar(err.message, "error");
     } finally {
       setLoading((p) => ({ ...p, submit: false }));
     }
@@ -417,8 +404,13 @@ export default function StagiairesPage() {
     const matchesStage = !filters.stage || stagiaire.stage?.documentId === filters.stage;
     const matchesBrigade = !filters.brigade || stagiaire.brigade?.documentId === filters.brigade;
     const matchesGrade = !filters.grade || stagiaire.grade === filters.grade;
+    
+    // فلترة حسب السنة (مطابقة نصية)
+    const matchesYear = !filters.year || 
+      (stagiaire.brigade?.year && 
+       getYearFromDate(stagiaire.brigade.year).toString().includes(filters.year));
 
-    return matchesSearch && matchesSpecialite && matchesStage && matchesBrigade && matchesGrade;
+    return matchesSearch && matchesSpecialite && matchesStage && matchesBrigade && matchesGrade && matchesYear;
   });
 
   return (
@@ -440,7 +432,7 @@ export default function StagiairesPage() {
 
       {/* Search & Filters */}
       <div className="bg-card border border-border rounded-lg p-4">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <input
@@ -474,7 +466,7 @@ export default function StagiairesPage() {
             <option value="">Toutes les brigades</option>
             {brigades.map((brigade) => (
               <option key={brigade.documentId} value={brigade.documentId}>
-                {brigade.nom}
+                {brigade.brigade_name?.nom || 'Sans nom'}
               </option>
             ))}
           </select>
@@ -487,6 +479,18 @@ export default function StagiairesPage() {
               </option>
             ))}
           </select>
+
+          {/* حقل إدخال السنة */}
+          <div>
+            <input
+              type="text"
+              placeholder="Filtrer par année..."
+              value={filters.year}
+              onChange={(e) => setFilters((f) => ({ ...f, year: e.target.value }))}
+              className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-sidebar-primary focus:border-transparent text-foreground"
+            />
+           
+          </div>
         </div>
       </div>
 

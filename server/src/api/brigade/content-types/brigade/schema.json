@@ -34,6 +34,15 @@
       "relation": "manyToOne",
       "target": "api::stage.stage",
       "inversedBy": "brigades"
+    },
+    "brigade_name": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::brigade-name.brigade-name",
+      "inversedBy": "brigades"
+    },
+    "year": {
+      "type": "date"
     }
   }
 }

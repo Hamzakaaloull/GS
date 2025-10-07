@@ -430,6 +430,35 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiBrigadeNameBrigadeName extends Struct.CollectionTypeSchema {
+  collectionName: 'brigade_names';
+  info: {
+    displayName: 'brigadeName';
+    pluralName: 'brigade-names';
+    singularName: 'brigade-name';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    brigades: Schema.Attribute.Relation<'oneToMany', 'api::brigade.brigade'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::brigade-name.brigade-name'
+    > &
+      Schema.Attribute.Private;
+    nom: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiBrigadeBrigade extends Struct.CollectionTypeSchema {
   collectionName: 'brigades';
   info: {
@@ -441,6 +470,10 @@ export interface ApiBrigadeBrigade extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    brigade_name: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::brigade-name.brigade-name'
+    >;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -465,6 +498,7 @@ export interface ApiBrigadeBrigade extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    year: Schema.Attribute.Date;
   };
 }
 
@@ -717,8 +751,8 @@ export interface ApiStagiaireStagiaire extends Struct.CollectionTypeSchema {
       [
         'Soldat  de 2e classe',
         'Soldat  de 1re classe',
-        'Caporal Adjoint',
-        'Caporal-chef Police',
+        'Caporal ',
+        'Caporal-chef ',
         'Sergent',
         'Sergent-chef',
         'Sergent-major',
@@ -1275,6 +1309,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::brigade-name.brigade-name': ApiBrigadeNameBrigadeName;
       'api::brigade.brigade': ApiBrigadeBrigade;
       'api::consultation.consultation': ApiConsultationConsultation;
       'api::permision.permision': ApiPermisionPermision;

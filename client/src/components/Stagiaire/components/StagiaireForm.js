@@ -25,6 +25,16 @@ export default function StagiaireForm({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // دالة لاستخراج السنة من التاريخ
+  const getYearFromDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      return new Date(dateString).getFullYear();
+    } catch (error) {
+      return '';
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-card border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -56,11 +66,15 @@ export default function StagiaireForm({
                         alt="Preview" 
                         className="w-full h-full object-cover"
                       />
-                    ) : formData.profile ? (
+                    ) : formData.profile && formData.profile.url ? (
                       <img 
                         src={`${API_URL}${formData.profile.url}`} 
                         alt="Profile" 
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
                       />
                     ) : (
                       <User className="h-12 w-12" />
@@ -278,7 +292,7 @@ export default function StagiaireForm({
                     <option value="">Sélectionnez une brigade</option>
                     {brigades.map((brigade) => (
                       <option key={brigade.id} value={brigade.id}>
-                        {brigade.nom}
+                        {brigade.brigade_name?.nom || 'Sans nom'} {brigade.year ? `(${getYearFromDate(brigade.year)})` : ''}
                       </option>
                     ))}
                   </select>

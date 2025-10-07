@@ -1,7 +1,7 @@
 // app/brigades/components/BrigadeForm.js
 "use client";
 import React, { useState } from "react";
-import { X, MapPin, Users, BookOpen, Calendar, Search } from "lucide-react";
+import { X, MapPin, Users, BookOpen, Calendar, Search, Plus } from "lucide-react";
 
 export default function BrigadeForm({
   open,
@@ -13,9 +13,13 @@ export default function BrigadeForm({
   setFormData,
   stagiaires,
   specialites,
-  stages
+  stages,
+  brigadeNames,
+  fetchBrigadeNames
 }) {
   const [searchStagiaires, setSearchStagiaires] = useState("");
+  const [showNewBrigadeName, setShowNewBrigadeName] = useState(false);
+  const [newBrigadeName, setNewBrigadeName] = useState("");
 
   if (!open) return null;
 
@@ -38,6 +42,38 @@ export default function BrigadeForm({
     stagiaire.first_name?.toLowerCase().includes(searchStagiaires.toLowerCase()) ||
     stagiaire.last_name?.toLowerCase().includes(searchStagiaires.toLowerCase())
   );
+
+  const handleAddNewBrigadeName = async () => {
+    if (!newBrigadeName.trim()) return;
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_STRAPI_API_URL;
+      const res = await fetch(`${API_URL}/api/brigade-names`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          data: {
+            nom: newBrigadeName.trim()
+          }
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Set the newly created brigade name as selected
+        handleInputChange('brigade_name', data.data.documentId);
+        setShowNewBrigadeName(false);
+        setNewBrigadeName("");
+        // Refresh brigade names list
+        await fetchBrigadeNames();
+      }
+    } catch (error) {
+      console.error("Error adding new brigade name:", error);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -64,19 +100,82 @@ export default function BrigadeForm({
                 Informations de base
               </h3>
               
+              {/* Year */}
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                  <Calendar className="h-4 w-4" />
+                  Année *
+                </label>
+                <input
+                  type="number"
+                  value={formData.year}
+                  onChange={(e) => handleInputChange('year', e.target.value)}
+                  placeholder="2024"
+                  min="2000"
+                  max="2030"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
+                  required
+                />
+              </div>
+
+              {/* Brigade Name */}
               <div>
                 <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
                   <MapPin className="h-4 w-4" />
                   Nom de la brigade *
                 </label>
-                <input
-                  type="text"
-                  value={formData.nom}
-                  onChange={(e) => handleInputChange('nom', e.target.value)}
-                  placeholder="Nom de la brigade"
-                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
-                  required
-                />
+                
+                {!showNewBrigadeName ? (
+                  <div className="space-y-2">
+                    <select 
+                      value={formData.brigade_name || ""} 
+                      onChange={(e) => handleInputChange('brigade_name', e.target.value || null)}
+                      className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
+                      required
+                    >
+                      <option value="">Sélectionnez un nom de brigade</option>
+                      {brigadeNames.map((brigadeName) => (
+                        <option key={brigadeName.documentId} value={brigadeName.documentId}>
+                          {brigadeName.nom}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewBrigadeName(true)}
+                      className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Ajouter un nouveau nom de brigade
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newBrigadeName}
+                        onChange={(e) => setNewBrigadeName(e.target.value)}
+                        placeholder="Nouveau nom de brigade"
+                        className="flex-1 px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddNewBrigadeName}
+                        className="px-3 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                      >
+                        Ajouter
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewBrigadeName(false)}
+                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -192,7 +291,7 @@ export default function BrigadeForm({
             </button>
             <button
               type="submit"
-              disabled={loading.submit}
+              disabled={loading.submit || !formData.year || !formData.brigade_name}
               className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading.submit && (

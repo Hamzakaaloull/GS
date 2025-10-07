@@ -1,3 +1,4 @@
+// app-sidebar.jsx
 "use client"
 import React, { useEffect, useState } from "react"
 import { Command, BookOpen, Users, NotepadText, Gavel, Command as Cmd, Hospital, Library, LifeBuoy, Frame, ShieldUser, Group } from "lucide-react"
@@ -85,8 +86,8 @@ export function AppSidebar(props) {
   const [error, setError] = useState(null)
   const { activeComponent, setActiveComponent } = useNavigation()
 
-  // إعدادات التنقل مع تحديد النشط ديناميكيًا
-  const navMain = [
+  // جميع عناصر التنقل الأساسية
+  const allNavMainItems = [
     { 
       title: "Users", 
       url: "#", 
@@ -94,7 +95,7 @@ export function AppSidebar(props) {
       isActive: activeComponent === "Users",
       onClick: () => setActiveComponent("Users")
     },
-     { 
+    { 
       title: "Specialite", 
       url: "#", 
       icon: Library, 
@@ -108,7 +109,7 @@ export function AppSidebar(props) {
       isActive: activeComponent === "Stage",
       onClick: () => setActiveComponent("Stage")
     },
-     { 
+    { 
       title: "Brigade", 
       url: "#", 
       icon: Group, 
@@ -122,7 +123,6 @@ export function AppSidebar(props) {
       isActive: activeComponent === "Stagiaires",
       onClick: () => setActiveComponent("Stagiaires")
     },
-    
     { 
       title: "Remarque", 
       url: "#", 
@@ -153,16 +153,45 @@ export function AppSidebar(props) {
     },
   ]
 
-  // const navSecondary = [{ title: "Support",
-  //    url: "#",
-  //     icon: LifeBuoy
-  //    }]
-  const projects = [{ title: "Assistance",
-     url: "#", 
-     icon: LifeBuoy , 
-     isActive: activeComponent === "Assistance",
-      onClick: () => setActiveComponent("Assistance")
-     }]
+  // عناصر التنقل للدكتور (فقط Consultation)
+  const doctorNavItems = [
+    { 
+      title: "Consultation", 
+      url: "#", 
+      icon: Hospital, 
+      isActive: activeComponent === "Consultation",
+      onClick: () => setActiveComponent("Consultation")
+    }
+  ]
+
+  // عناصر التنقل للمستخدم العام (كل شيء ما عدا Users)
+  const publicNavItems = allNavMainItems.filter(item => item.title !== "Users")
+
+  // تحديد عناصر التنقل بناءً على دور المستخدم
+  const getNavItems = () => {
+    if (!userRaw) return allNavMainItems
+    
+    const userRole = userRaw.role?.name || userRaw.role
+    
+    if (userRole === "doctor") {
+      return doctorNavItems
+    } else if (userRole === "public") {
+      return publicNavItems
+    } else {
+      // admin أو أي دور آخر - عرض كل شيء
+      return allNavMainItems
+    }
+  }
+
+  const navMain = getNavItems()
+  
+  const projects = [{ 
+    title: "Assistance", 
+    url: "#", 
+    icon: LifeBuoy, 
+    isActive: activeComponent === "Assistance",
+    onClick: () => setActiveComponent("Assistance")
+  }]
 
   useEffect(() => {
     let mounted = true
@@ -198,6 +227,17 @@ export function AppSidebar(props) {
         const user = json?.data ? json.data : json
         if (mounted) {
           setUserRaw(user)
+          
+          // تعيين المكون الافتراضي بناءً على دور المستخدم
+          const userRole = user.role?.name || user.role
+          if (userRole === "doctor") {
+            setActiveComponent("Consultation")
+          } else if (userRole === "public") {
+            setActiveComponent("Specialite")
+          } else {
+            setActiveComponent("Users")
+          }
+          
           setLoading(false)
         }
       } catch (err) {
@@ -212,7 +252,7 @@ export function AppSidebar(props) {
     return () => {
       mounted = false
     }
-  }, [])
+  }, [setActiveComponent])
 
   // تحضير كائن بيانات مبسط للاستخدام
   const data = React.useMemo(() => {
@@ -249,11 +289,8 @@ export function AppSidebar(props) {
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
                <img src="https://upload.wikimedia.org/wikipedia/commons/a/a1/Moroccan_Armed_Force.png" alt="Logo" className="w-6 h-auto object-contain mr-1" />
-                {/* <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                </div> */}
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium ">Gestion</span>
-                  
                   <span className="truncate text-sm ">Des Stagiaires</span>
                 </div>
               </a>
@@ -265,7 +302,6 @@ export function AppSidebar(props) {
       <SidebarContent>
         <NavMain items={navMain} />
         <NavProjects projects={projects} />
-        {/* <NavSecondary items={navSecondary} className="mt-auto" /> */}
       </SidebarContent>
 
       <SidebarFooter>

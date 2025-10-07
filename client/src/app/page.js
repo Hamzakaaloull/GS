@@ -214,7 +214,7 @@ export default function LoginPage() {
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Connexion...
+                  Connexion
                 </div>
               ) : (
                 "Se connecter"

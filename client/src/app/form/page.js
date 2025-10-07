@@ -1,6 +1,6 @@
 // page.jsx
 "use client"
-import React, { useEffect, useState } from "react"
+import React, { useEffect } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { NavigationProvider, useNavigation } from '../../components/navigation-context'
 import {
@@ -32,70 +32,36 @@ import Brigade from "../../components/brigade/page"
 import Assistance from "../../components/Assistance/page"
 
 function MainContent() {
-  const { activeComponent } = useNavigation()
-  const [userRole, setUserRole] = useState(null)
+  const { activeComponent, setActiveComponent } = useNavigation()
 
-  // جلب دور المستخدم من localStorage أو API إذا لزم الأمر
+  // إذا كان المستخدم ليس لديه صلاحية للوصول للعنصر الحالي، نعيد توجيهه
   useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const API = process.env.NEXT_PUBLIC_STRAPI_API_URL;
-        const token = localStorage.getItem("token")
-        if (token) {
-          const res = await fetch(`${API.replace(/\/$/, "")}/api/users/me?populate[role]=*`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          })
-          if (res.ok) {
-            const userData = await res.json()
-            const user = userData?.data ? userData.data : userData
-            setUserRole(user.role?.name || user.role)
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching user role:", error)
-      }
-    }
-
-    fetchUserRole()
-  }, [])
+    // يمكن إضافة منطق إضافي هنا إذا لزم الأمر
+  }, [activeComponent])
 
   const renderActiveComponent = () => {
-    // التحقق من الصلاحيات قبل عرض المكون
-    if (userRole === "doctor" && activeComponent !== "Consultation") {
-      return <Consultation />
-    }
-    
-    if (userRole === "public" && activeComponent === "Users") {
-      return <Specialite />
-    }
-
     switch (activeComponent) {
       case 'Users':
-        return userRole !== "public" ? <UsersPage /> : <Specialite />
+        return <UsersPage />
       case 'Stagiaires':
-        return userRole !== "doctor" ? <Stagiaires /> : <Consultation />
+        return <Stagiaires />
       case 'Stage':
-        return userRole !== "doctor" ? <Stage /> : <Consultation />
+        return <Stage />
       case 'Remarque':
-        return userRole !== "doctor" ? <Remarque /> : <Consultation />
+        return <Remarque />
       case 'Penition':
-        return userRole !== "doctor" ? <Penition /> : <Consultation />
+        return <Penition />
       case 'Permission':
-        return userRole !== "doctor" ? <Permission /> : <Consultation />
+        return <Permission />
       case 'Consultation':
         return <Consultation />
       case 'Specialite':
         return <Specialite />
       case 'Brigade':
-        return userRole !== "doctor" ? <Brigade /> : <Consultation />
+        return <Brigade />
       case 'Assistance':
         return <Assistance />
       default:
-        // الافتراضي بناءً على الدور
-        if (userRole === "doctor") return <Consultation />
-        if (userRole === "public") return <Specialite />
         return <UsersPage />
     }
   }

@@ -13,6 +13,19 @@ export default function BrigadeDetailDialog({
 
   if (!open || !brigade) return null;
 
+  // دالة محسنة لاستخراج السنة من التاريخ
+  const extractYearFromDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      // استخدام UTC لتجنب مشاكل المنطقة الزمنية
+      return date.getUTCFullYear().toString();
+    } catch (error) {
+      console.error("Error extracting year from date:", error);
+      return 'N/A';
+    }
+  };
+
   const getFilteredItems = () => {
     if (activeTab === 'stagiaires') {
       const items = brigade.stagiaires || [];
@@ -68,9 +81,19 @@ export default function BrigadeDetailDialog({
             <div className="bg-primary/10 rounded-lg p-4">
               <h3 className="text-lg font-medium text-foreground mb-2">Informations de la Brigade</h3>
               <div className="space-y-2">
-                <div>
-                  <p className="text-sm text-muted-foreground">Nom</p>
-                  <p className="font-medium text-foreground">{brigade.nom}</p>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Nom</p>
+                    <p className="font-medium text-foreground">{brigade.brigade_name?.nom || 'Aucun nom'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Année</p>
+                    <p className="font-medium text-foreground">{extractYearFromDate(brigade.year)}</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-primary" />

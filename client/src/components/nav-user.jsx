@@ -81,7 +81,9 @@ export function NavUser({
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{user.role?.name}</span>
+              <span className= {user.raw?.isActive ? "truncate text-xs text-green-600" : "truncate text-xs text-red-600"}>
+                    {user.raw?.isActive ? "En ligne" : "Hors ligne"}
+                  </span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -109,16 +111,7 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck className="w-4 h-4 mr-2" />
-                Compte
-              </DropdownMenuItem>
-            
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
+           
             <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
               <LogOut className="w-4 h-4 mr-2" />
               Déconnexion

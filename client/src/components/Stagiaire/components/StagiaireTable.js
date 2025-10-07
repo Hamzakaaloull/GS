@@ -16,7 +16,6 @@ export default function StagiaireTable({
   const [activeDropdown, setActiveDropdown] = useState(null);
   const dropdownRefs = useRef({});
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       const clickedOutside = Object.values(dropdownRefs.current).every(ref => {
@@ -76,6 +75,16 @@ export default function StagiaireTable({
     }
   };
 
+  // دالة لتحويل التاريخ إلى سنة
+  const getYearFromDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).getFullYear();
+    } catch (error) {
+      return 'N/A';
+    }
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -89,6 +98,7 @@ export default function StagiaireTable({
             <th className="text-left p-4 font-semibold text-foreground">Spécialité</th>
             <th className="text-left p-4 font-semibold text-foreground">Stage</th>
             <th className="text-left p-4 font-semibold text-foreground">Brigade</th>
+            <th className="text-left p-4 font-semibold text-foreground">Année</th>
             <th className="text-right p-4 font-semibold text-foreground">Actions</th>
           </tr>
         </thead>
@@ -161,7 +171,12 @@ export default function StagiaireTable({
               
               {/* Brigade */}
               <td className="p-4 text-muted-foreground">
-                {stagiaire.brigade?.nom || 'N/A'}
+                {stagiaire.brigade?.brigade_name?.nom || 'N/A'}
+              </td>
+
+              {/* Year */}
+              <td className="p-4 text-muted-foreground">
+           {new Date(stagiaire.brigade?.year).getFullYear() + 1}
               </td>
               
               {/* Actions */}
