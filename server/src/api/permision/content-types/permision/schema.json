@@ -20,15 +20,9 @@
     "type": {
       "type": "enumeration",
       "enum": [
-        "Permission ordinaire",
-        "Permission exceptionnelle",
-        "Permission de longue durée",
-        "Permission pour convenances personnelles",
-        "Permission de convalescence",
-        "Permission pour raisons familiales graves",
-        "Permission libérale",
-        "Permission d’éloignement",
-        "Permission d’études"
+        "permission exceptionnelle",
+        "permission de repos",
+        "Permission congé"
       ]
     },
     "stagiaires": {

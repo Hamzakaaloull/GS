@@ -9,7 +9,7 @@ import StageDialogs from "./components/StageDialogs";
 
 export default function StagesPage() {
   const API_URL = process.env.NEXT_PUBLIC_STRAPI_API_URL;
-  
+
   const [stages, setStages] = useState([]);
   const [stagiaires, setStagiaires] = useState([]);
   const [specialites, setSpecialites] = useState([]);
@@ -26,23 +26,23 @@ export default function StagesPage() {
     description: "",
     stagiaires: [],
     specialites: [],
-    brigades: []
+    brigades: [],
   });
-  const [loading, setLoading] = useState({ 
-    global: false, 
-    delete: false, 
-    submit: false 
+  const [loading, setLoading] = useState({
+    global: false,
+    delete: false,
+    submit: false,
   });
-  const [snackbar, setSnackbar] = useState({ 
-    open: false, 
-    message: "", 
-    severity: "success" 
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState({
     start_date: "",
     end_date: "",
-    year: ""
+    year: "",
   });
 
   useEffect(() => {
@@ -57,10 +57,10 @@ export default function StagesPage() {
     try {
       const res = await fetch(
         `${API_URL}/api/stages?populate=stagiaires&populate=specialites&populate=brigades`,
-        { 
-          headers: { 
-            Authorization: `Bearer ${localStorage.getItem("token")}` 
-          } 
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
       );
       const data = await res.json();
@@ -75,14 +75,11 @@ export default function StagesPage() {
 
   async function fetchStagiaires() {
     try {
-      const res = await fetch(
-        `${API_URL}/api/stagiaires?populate=profile`,
-        { 
-          headers: { 
-            Authorization: `Bearer ${localStorage.getItem("token")}` 
-          } 
-        }
-      );
+      const res = await fetch(`${API_URL}/api/stagiaires?populate=profile`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
       const data = await res.json();
       setStagiaires(data.data || []);
     } catch (error) {
@@ -92,14 +89,11 @@ export default function StagesPage() {
 
   async function fetchSpecialites() {
     try {
-      const res = await fetch(
-        `${API_URL}/api/specialites`,
-        { 
-          headers: { 
-            Authorization: `Bearer ${localStorage.getItem("token")}` 
-          } 
-        }
-      );
+      const res = await fetch(`${API_URL}/api/specialites`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
       const data = await res.json();
       setSpecialites(data.data || []);
     } catch (error) {
@@ -109,14 +103,11 @@ export default function StagesPage() {
 
   async function fetchBrigades() {
     try {
-      const res = await fetch(
-        `${API_URL}/api/brigades`,
-        { 
-          headers: { 
-            Authorization: `Bearer ${localStorage.getItem("token")}` 
-          } 
-        }
-      );
+      const res = await fetch(`${API_URL}/api/brigades`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
       const data = await res.json();
       setBrigades(data.data || []);
     } catch (error) {
@@ -127,22 +118,28 @@ export default function StagesPage() {
   function handleOpen(stage = null) {
     if (stage) {
       setEditingStage(stage.documentId);
-      
-      const formattedStartDate = stage.start_date 
-        ? new Date(stage.start_date).toISOString().split('T')[0]
-        : "";
-      const formattedEndDate = stage.end_date 
-        ? new Date(stage.end_date).toISOString().split('T')[0]
-        : "";
-      
+
+      const adjustDateForForm = (dateString) => {
+        if (!dateString) return "";
+        const date = new Date(dateString);
+        // Adjust for timezone offset
+        const adjustedDate = new Date(
+          date.getTime() + date.getTimezoneOffset() * 60000
+        );
+        return adjustedDate.toISOString().split("T")[0];
+      };
+
+      const formattedStartDate = adjustDateForForm(stage.start_date);
+      const formattedEndDate = adjustDateForForm(stage.end_date);
+
       setFormData({
         name: stage.name || "",
         start_date: formattedStartDate,
         end_date: formattedEndDate,
         description: stage.description || "",
-        stagiaires: stage.stagiaires?.map(s => s.documentId) || [],
-        specialites: stage.specialites?.map(s => s.documentId) || [],
-        brigades: stage.brigades?.map(b => b.documentId) || []
+        stagiaires: stage.stagiaires?.map((s) => s.documentId) || [],
+        specialites: stage.specialites?.map((s) => s.documentId) || [],
+        brigades: stage.brigades?.map((b) => b.documentId) || [],
       });
     } else {
       setEditingStage(null);
@@ -153,7 +150,7 @@ export default function StagesPage() {
         description: "",
         stagiaires: [],
         specialites: [],
-        brigades: []
+        brigades: [],
       });
     }
     setOpen(true);
@@ -171,9 +168,9 @@ export default function StagesPage() {
       const url = editingStage
         ? `${API_URL}/api/stages/${editingStage}`
         : `${API_URL}/api/stages`;
-      
+
       const method = editingStage ? "PUT" : "POST";
-      
+
       const requestData = {
         data: {
           name: formData.name,
@@ -181,15 +178,15 @@ export default function StagesPage() {
           end_date: formData.end_date,
           description: formData.description || null,
           stagiaires: {
-            connect: formData.stagiaires
+            connect: formData.stagiaires,
           },
           specialites: {
-            connect: formData.specialites
+            connect: formData.specialites,
           },
           brigades: {
-            connect: formData.brigades
-          }
-        }
+            connect: formData.brigades,
+          },
+        },
       };
 
       const res = await fetch(url, {
@@ -204,13 +201,15 @@ export default function StagesPage() {
       const responseData = await res.json();
 
       if (!res.ok) {
-        throw new Error(responseData.error?.message || "Erreur lors de l'opération");
+        throw new Error(
+          responseData.error?.message || "Erreur lors de l'opération"
+        );
       }
 
       await fetchStages();
       setOpen(false);
       showSnackbar(
-        editingStage ? "Stage modifié avec succès" : "Stage créé avec succès", 
+        editingStage ? "Stage modifié avec succès" : "Stage créé avec succès",
         "success"
       );
     } catch (err) {
@@ -228,15 +227,15 @@ export default function StagesPage() {
 
   async function handleDeleteConfirmed() {
     if (!selectedStage) return;
-    
+
     setLoading((p) => ({ ...p, delete: true }));
     try {
       const res = await fetch(
         `${API_URL}/api/stages/${selectedStage.documentId}`,
         {
           method: "DELETE",
-          headers: { 
-            Authorization: `Bearer ${localStorage.getItem("token")}` 
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
@@ -262,26 +261,55 @@ export default function StagesPage() {
   }
 
   // Get unique years from stages
-  const years = [...new Set(stages.map(stage => {
-    const date = stage.start_date ? new Date(stage.start_date) : null;
-    return date ? date.getFullYear() : null;
-  }).filter(year => year))].sort((a, b) => b - a);
+  // Get unique years from stages (using adjusted dates)
+  const years = [
+    ...new Set(
+      stages
+        .map((stage) => {
+          if (!stage.start_date) return null;
+
+          const date = new Date(stage.start_date);
+          // Adjust for timezone offset
+          const adjustedDate = new Date(
+            date.getTime() + date.getTimezoneOffset() * 60000
+          );
+          return adjustedDate.getFullYear();
+        })
+        .filter((year) => year)
+    ),
+  ].sort((a, b) => b - a);
 
   // Filter stages based on search and filters
+  // Filter stages based on search and filters
   const filteredStages = stages.filter((stage) => {
-    const matchesSearch = 
-      (stage.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (stage.description?.toLowerCase() || '').includes(searchQuery.toLowerCase());
-    
-    const matchesStartDate = !filters.start_date || 
-      stage.start_date === filters.start_date;
-    
-    const matchesEndDate = !filters.end_date || 
-      stage.end_date === filters.end_date;
-    
-    const matchesYear = !filters.year || 
-      (stage.start_date && new Date(stage.start_date).getFullYear().toString() === filters.year);
-    
+    const matchesSearch =
+      (stage.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (stage.description?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      );
+
+    // Adjust dates for filtering by adding one day
+    const adjustDateForFilter = (dateString) => {
+      if (!dateString) return null;
+      const date = new Date(dateString);
+      return new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+        .toISOString()
+        .split("T")[0];
+    };
+
+    const stageStartDate = adjustDateForFilter(stage.start_date);
+    const stageEndDate = adjustDateForFilter(stage.end_date);
+
+    const matchesStartDate =
+      !filters.start_date || stageStartDate === filters.start_date;
+
+    const matchesEndDate =
+      !filters.end_date || stageEndDate === filters.end_date;
+
+    const matchesYear =
+      !filters.year ||
+      (stageStartDate && stageStartDate.split("-")[0] === filters.year);
+
     return matchesSearch && matchesStartDate && matchesEndDate && matchesYear;
   });
 
@@ -290,13 +318,15 @@ export default function StagesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Gestion des Stages</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            Gestion des Stages
+          </h1>
           <p className="text-muted-foreground mt-1">
             Gérez les stages et leurs informations
           </p>
         </div>
-        <button 
-          onClick={() => handleOpen()} 
+        <button
+          onClick={() => handleOpen()}
           className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -308,9 +338,9 @@ export default function StagesPage() {
       <div className="bg-card border border-border rounded-lg p-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Search by Name */}
-         
+
           <div className="relative">
-              <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
               <Search className="h-4 w-4" />
               Rechercher
             </label>
@@ -333,7 +363,9 @@ export default function StagesPage() {
             <input
               type="date"
               value={filters.start_date}
-              onChange={(e) => setFilters(f => ({ ...f, start_date: e.target.value }))}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, start_date: e.target.value }))
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
             />
           </div>
@@ -346,7 +378,9 @@ export default function StagesPage() {
             <input
               type="date"
               value={filters.end_date}
-              onChange={(e) => setFilters(f => ({ ...f, end_date: e.target.value }))}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, end_date: e.target.value }))
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
             />
           </div>
@@ -355,9 +389,11 @@ export default function StagesPage() {
             <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-1">
               Année
             </label>
-            <select 
-              value={filters.year} 
-              onChange={(e) => setFilters(f => ({ ...f, year: e.target.value }))}
+            <select
+              value={filters.year}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, year: e.target.value }))
+              }
               className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
             >
               <option value="">Toutes les années</option>
@@ -375,7 +411,9 @@ export default function StagesPage() {
       <div className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="p-6 border-b border-border">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold text-foreground">Liste des Stages</h2>
+            <h2 className="text-xl font-semibold text-foreground">
+              Liste des Stages
+            </h2>
             <span className="bg-muted text-muted-foreground px-2 py-1 rounded-md text-sm">
               {filteredStages.length} / {stages.length}
             </span>

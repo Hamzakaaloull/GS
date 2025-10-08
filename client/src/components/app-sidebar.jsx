@@ -2,7 +2,7 @@
 "use client"
 import React, { useEffect, useState } from "react"
 import { Command, BookOpen, Users, NotepadText, Gavel, Command as Cmd, Hospital, Library, LifeBuoy, Frame, ShieldUser, Group } from "lucide-react"
-
+import Image from "next/image"
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -288,7 +288,8 @@ export function AppSidebar(props) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
-               <img src="https://upload.wikimedia.org/wikipedia/commons/a/a1/Moroccan_Armed_Force.png" alt="Logo" className="w-6 h-auto object-contain mr-1" />
+                <Image src="/img/FAR.png"  className="mr-2"   width={30} height={50} quality={100} alt="far"  />
+               {/* <img src="https://upload.wikimedia.org/wikipedia/commons/a/a1/Moroccan_Armed_Force.png" alt="Logo" className="w-6 h-auto object-contain mr-1" /> */}
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium ">Gestion</span>
                   <span className="truncate text-sm ">Des Stagiaires</span>

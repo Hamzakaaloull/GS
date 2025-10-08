@@ -2,6 +2,7 @@
 "use client";
 import React from "react";
 import { X, User, IdCard, Calendar, Phone, Droplets, Camera } from "lucide-react";
+import { formatDateForInput, getYearFromDate } from '@/hooks/dateUtils';
 
 export default function StagiaireForm({
   open,
@@ -23,16 +24,6 @@ export default function StagiaireForm({
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  // دالة لاستخراج السنة من التاريخ
-  const getYearFromDate = (dateString) => {
-    if (!dateString) return '';
-    try {
-      return new Date(dateString).getFullYear();
-    } catch (error) {
-      return '';
-    }
   };
 
   return (
@@ -239,7 +230,7 @@ export default function StagiaireForm({
               </div>
 
               {/* Relations */}
-              <div className="space-y-4">
+              <div className="space-y-4 ">
                 <h3 className="text-lg font-medium text-foreground border-b border-border pb-2">
                   Relations
                 </h3>
@@ -248,18 +239,18 @@ export default function StagiaireForm({
                   <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
                     Spécialité
                   </label>
-                               <select 
-  value={formData.specialite || ""} 
-  onChange={(e) => handleInputChange('specialite', e.target.value || null)}
-  className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-sidebar-primary focus:border-transparent text-foreground"
->
-  <option value="">Sélectionnez une spécialité</option>
-  {specialites.map((specialite) => (
-    <option key={specialite.documentId} value={specialite.documentId}>
-      {specialite.name}
-    </option>
-  ))}
-</select>
+                           <select 
+                        value={formData.specialite || ""} 
+                        onChange={(e) => handleInputChange('specialite', e.target.value || null)}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-sidebar-primary focus:border-transparent text-foreground"
+                      >
+                        <option value="">Sélectionnez une spécialité</option>
+                        {specialites.map((specialite) => (
+                          <option key={specialite.documentId} value={specialite.documentId}>
+                            {specialite.name}
+                          </option>
+                        ))}
+                      </select>
                 </div>
 
                 <div>
@@ -287,9 +278,9 @@ export default function StagiaireForm({
                   <select 
                     value={formData.brigade || ""} 
                     onChange={(e) => handleInputChange('brigade', e.target.value ? parseInt(e.target.value) : null)}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-sidebar-primary focus:border-transparent text-foreground"
+                    className="w-full  px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-sidebar-primary focus:border-transparent text-foreground"
                   >
-                    <option value="">Sélectionnez une brigade</option>
+                    <option className="w-full h-full p-4" value="">Sélectionnez une brigade</option>
                     {brigades.map((brigade) => (
                       <option key={brigade.id} value={brigade.id}>
                         {brigade.brigade_name?.nom || 'Sans nom'} {brigade.year ? `(${getYearFromDate(brigade.year)})` : ''}

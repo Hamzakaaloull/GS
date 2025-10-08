@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { MoreVertical, Eye, Edit, Trash2, User } from "lucide-react";
+import { formatDateForDisplay } from '@/hooks/dateUtils';
 
 export default function RemarqueTable({
   remarques,
@@ -30,11 +31,7 @@ export default function RemarqueTable({
       document.removeEventListener('click', handleClickOutside);
     };
   }, []);
-function addDays(dateLike, days = 1) {
-  const d = new Date(dateLike); // نسخ التاريخ (يتعامل مع string أو Date)
-  d.setDate(d.getDate() + days);
-  return d;
-}
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-32">
@@ -77,11 +74,6 @@ function addDays(dateLike, days = 1) {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('fr-FR');
-  };
-
   const getTypeColor = (type) => {
     switch (type) {
       case 'Positive':
@@ -114,7 +106,7 @@ function addDays(dateLike, days = 1) {
             >
               {/* Date */}
               <td className="p-4 text-muted-foreground">
-                 {formatDate(addDays(remarque.date, 1))}
+                 {formatDateForDisplay(remarque.date)}
               </td>
               
               {/* Stagiaire */}

@@ -2,6 +2,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { MoreVertical, Eye, Edit, Trash2, Calendar, Users } from "lucide-react";
+import { formatDateForDisplay } from '@/hooks/dateUtils';
 
 export default function PermissionTable({
   permissions,
@@ -75,13 +76,6 @@ export default function PermissionTable({
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    date.setDate(date.getDate() + 1); // Add 1 day for display only
-    return date.toLocaleDateString('fr-FR');
-  };
-
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -107,7 +101,7 @@ export default function PermissionTable({
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-foreground font-medium">
-                    {formatDate(permission.start_date)}
+                    {formatDateForDisplay(permission.start_date)}
                   </span>
                 </div>
               </td>
@@ -117,7 +111,7 @@ export default function PermissionTable({
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-foreground font-medium">
-                    {formatDate(permission.end_date)}
+                    {formatDateForDisplay(permission.end_date)}
                   </span>
                 </div>
               </td>

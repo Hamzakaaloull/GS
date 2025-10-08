@@ -1,7 +1,8 @@
-    // app/permissions/components/PermissionForm.js
+// app/permissions/components/PermissionForm.js
 "use client";
 import React, { useState, useMemo } from "react";
 import { X, Calendar, Users, Search, User } from "lucide-react";
+import { formatDateForInput, calculateDuration } from '@/hooks/dateUtils';
 
 export default function PermissionForm({
   open,
@@ -55,13 +56,16 @@ export default function PermissionForm({
     return formData.stagiaires.includes(stagiaireId);
   };
 
-  const calculateDuration = () => {
-    if (formData.start_date && formData.end_date) {
-      const start = new Date(formData.start_date);
-      const end = new Date(formData.end_date);
-      const diffTime = Math.abs(end - start);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      handleInputChange('duration', diffDays.toString());
+  const handleDateChange = (field, value) => {
+    handleInputChange(field, value);
+    
+    // Calculate duration when both dates are set
+    if (field === 'start_date' && formData.end_date) {
+      const duration = calculateDuration(value, formData.end_date);
+      handleInputChange('duration', duration.toString());
+    } else if (field === 'end_date' && formData.start_date) {
+      const duration = calculateDuration(formData.start_date, value);
+      handleInputChange('duration', duration.toString());
     }
   };
 
@@ -101,8 +105,7 @@ export default function PermissionForm({
                 <input
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) => handleInputChange('start_date', e.target.value)}
-                  onBlur={calculateDuration}
+                  onChange={(e) => handleDateChange('start_date', e.target.value)}
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-sidebar-primary focus:border-transparent text-foreground"
                   required
                 />
@@ -117,8 +120,7 @@ export default function PermissionForm({
                 <input
                   type="date"
                   value={formData.end_date}
-                  onChange={(e) => handleInputChange('end_date', e.target.value)}
-                  onBlur={calculateDuration}
+                  onChange={(e) => handleDateChange('end_date', e.target.value)}
                   className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-sidebar-primary focus:border-transparent text-foreground"
                   required
                 />

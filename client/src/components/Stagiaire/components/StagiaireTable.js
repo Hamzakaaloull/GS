@@ -2,6 +2,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { MoreVertical, Eye, Edit, Trash2, User } from "lucide-react";
+import { getYearFromDate } from '@/hooks/dateUtils';
 
 export default function StagiaireTable({
   stagiaires,
@@ -72,16 +73,6 @@ export default function StagiaireTable({
         break;
       default:
         break;
-    }
-  };
-
-  // دالة لتحويل التاريخ إلى سنة
-  const getYearFromDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).getFullYear();
-    } catch (error) {
-      return 'N/A';
     }
   };
 
@@ -176,7 +167,7 @@ export default function StagiaireTable({
 
               {/* Year */}
               <td className="p-4 text-muted-foreground">
-           {new Date(stagiaire.brigade?.year).getFullYear() + 1}
+                <div>{getYearFromDate(stagiaire.brigade?.year) || "N/A"}</div>
               </td>
               
               {/* Actions */}

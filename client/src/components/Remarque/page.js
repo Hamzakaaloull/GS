@@ -6,6 +6,7 @@ import RemarqueForm from "./components/RemarqueForm";
 import RemarqueDetailDialog from "./components/RemarqueDetailDialog";
 import RemarqueDialogs from "./components/RemarqueDialogs";
 import RemarqueStats from "./components/RemarqueStats";
+import { formatDateForInput, adjustDateForFilter } from '@/hooks/dateUtils';
 
 export default function RemarquesPage() {
   const API_URL = process.env.NEXT_PUBLIC_STRAPI_API_URL;
@@ -92,9 +93,8 @@ export default function RemarquesPage() {
     if (remarque) {
       setEditingRemarque(remarque.documentId);
       
-      const formattedDate = remarque.date 
-        ? new Date(remarque.date).toISOString().split('T')[0]
-        : "";
+      // استخدام formatDateForInput لضبط التاريخ
+      const formattedDate = formatDateForInput(remarque.date);
       
       setFormData({
         date: formattedDate,
@@ -231,8 +231,9 @@ export default function RemarquesPage() {
       (remarque.stagiaire?.last_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
       (remarque.stagiaire?.cin?.toString() || '').includes(searchQuery);
     
+    // استخدام adjustDateForFilter للفلترة
     const matchesDate = !filters.date || 
-      remarque.date?.includes(filters.date);
+      adjustDateForFilter(remarque.date) === filters.date;
     
     const matchesType = !filters.type || 
       remarque.type?.toLowerCase() === filters.type.toLowerCase();

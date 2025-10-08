@@ -1,7 +1,8 @@
 // components/StagiaireDetailDialog.js
 "use client";
 import React from "react";
-import { X, User, IdCard, Calendar, Phone, Droplets, BookOpen, Users, MapPin, Mail } from "lucide-react";
+import { X, User, IdCard, Calendar, Phone, Droplets, BookOpen, Users, MapPin } from "lucide-react";
+import { formatDateForDisplay, getYearFromDate } from '@/hooks/dateUtils';
 
 export default function StagiaireDetailDialog({
   open,
@@ -10,24 +11,6 @@ export default function StagiaireDetailDialog({
   API_URL
 }) {
   if (!open || !stagiaire) return null;
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Non spécifié';
-    try {
-      return new Date(dateString).toLocaleDateString('fr-FR');
-    } catch (error) {
-      return 'Date invalide';
-    }
-  };
-
-  const getYearFromDate = (dateString) => {
-    if (!dateString) return 'Non spécifié';
-    try {
-      return new Date(dateString).getFullYear();
-    } catch (error) {
-      return 'Date invalide';
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -101,7 +84,7 @@ export default function StagiaireDetailDialog({
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">Date de naissance</span>
                     </div>
-                    <span className="font-medium text-foreground">{formatDate(stagiaire.date_naissance)}</span>
+                    <span className="font-medium text-foreground">{formatDateForDisplay(stagiaire.date_naissance)}</span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -183,15 +166,15 @@ export default function StagiaireDetailDialog({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Créé le</p>
-                <p className="text-foreground font-medium">{formatDate(stagiaire.createdAt)}</p>
+                <p className="text-foreground font-medium">{formatDateForDisplay(stagiaire.createdAt)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Modifié le</p>
-                <p className="text-foreground font-medium">{formatDate(stagiaire.updatedAt)}</p>
+                <p className="text-foreground font-medium">{formatDateForDisplay(stagiaire.updatedAt)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Publié le</p>
-                <p className="text-foreground font-medium">{formatDate(stagiaire.publishedAt)}</p>
+                <p className="text-foreground font-medium">{formatDateForDisplay(stagiaire.publishedAt)}</p>
               </div>
             </div>
           </div>

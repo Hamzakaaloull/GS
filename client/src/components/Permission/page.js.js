@@ -6,6 +6,7 @@ import PermissionTable from "./components/PermissionTable";
 import PermissionForm from "./components/PermissionForm";
 import PermissionDetailDialog from "./components/PermissionDetailDialog";
 import PermissionDialogs from "./components/PermissionDialogs";
+import { formatDateForInput } from '@/hooks/dateUtils';
 
 export default function PermissionsPage() {
   const API_URL = process.env.NEXT_PUBLIC_STRAPI_API_URL;
@@ -42,15 +43,9 @@ export default function PermissionsPage() {
   });
 
   const permissionTypes = [
-    "Permission ordinaire",
-"Permission exceptionnelle",
-"Permission de longue durée",
-"Permission pour convenances personnelles",
-"Permission de convalescence",
-"Permission pour raisons familiales graves",
-"Permission libérale",
-"Permission d’éloignement",
-"Permission d’études",
+      "permission exceptionnelle" , 
+      "permission de repos",
+      "Permission congé",
   ];
 
   useEffect(() => {
@@ -103,13 +98,9 @@ export default function PermissionsPage() {
     if (permission) {
       setEditingPermission(permission.documentId);
       
-      const formattedStartDate = permission.start_date 
-        ? new Date(permission.start_date).toISOString().split('T')[0]
-        : "";
-      
-      const formattedEndDate = permission.end_date 
-        ? new Date(permission.end_date).toISOString().split('T')[0]
-        : "";
+      // استخدام formatDateForInput لضبط التواريخ
+      const formattedStartDate = formatDateForInput(permission.start_date);
+      const formattedEndDate = formatDateForInput(permission.end_date);
       
       setFormData({
         start_date: formattedStartDate,

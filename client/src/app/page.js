@@ -1,8 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useRef, lazy, Suspense } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
-
+import Image from "next/image";
 import { 
   Eye, 
   EyeOff, 
@@ -12,6 +12,19 @@ import {
   Moon
 } from "lucide-react";
 
+// Lazy load Lottie
+const DotLottieReact = lazy(() =>
+  import("@lottiefiles/dotlottie-react").then((mod) => {
+    // حاول استعمال ما هو موجود: default أو اسم مُصدّر شائع
+    return { default: mod?.default ?? mod?.DotLottieReact ?? mod };
+  })
+);
+
+// Simple loading component for Lottie
+const LottieFallback = () => (
+  <div className="h-24 w-24 bg-gray-200 animate-pulse rounded-lg mx-auto"></div>
+);
+
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -20,15 +33,70 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState("light");
+
+  const [isOnline, setIsonline] = useState(true);
+  const usernameRef = useRef(null);
   const API = process.env.NEXT_PUBLIC_STRAPI_API_URL;
+
+  // Animation and auto-focus effect
+  useEffect(() => {
+    
+    
+    // Focus on username input after component mounts
+    const timer = setTimeout(() => {
+      if (usernameRef.current) {
+        usernameRef.current.focus();
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Debounced network status check
+  useEffect(() => {
+    let mounted = true;
+    let timeoutId;
+
+    const handleOnline = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (mounted) setIsonline(true);
+    };
+
+    const handleOffline = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        if (mounted) setIsonline(false);
+      }, 100);
+    };
+
+    if (mounted) {
+      setIsonline(navigator.onLine);
+      window.addEventListener("online", handleOnline, { passive: true });
+      window.addEventListener("offline", handleOffline, { passive: true });
+    }
+
+    return () => {
+      mounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    
     if (!username || !password) {
       setError("Veuillez remplir tous les champs.");
       return;
     }
+
+    if (!isOnline) {
+      setError("Vous êtes hors ligne. Veuillez vérifier votre connexion internet.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -114,11 +182,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-black transition-colors duration-300">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-black transition-all duration-500 ease-out">
       {/* Theme Toggle */}
       <button
         onClick={toggleTheme}
         className="absolute top-4 right-4 p-2 rounded-lg bg-white dark:bg-black border border-gray-300 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors z-10"
+        aria-label={theme === "light" ? "Activer le mode sombre" : "Activer le mode clair"}
       >
         {theme === "light" ? (
           <Moon className="w-4 h-4 text-gray-700 dark:text-gray-300" />
@@ -127,16 +197,27 @@ export default function LoginPage() {
         )}
       </button>
 
-      <div className="overflow-auto flex flex-col lg:flex-row w-auto max-w-3xl h-[500px] bg-white dark:bg-black shadow-2xl rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800">
+      {/* Network Status Indicator */}
+      {!isOnline && (
+        <div className="absolute top-4 left-4 px-3 py-1 bg-yellow-100 border border-yellow-400 rounded-lg">
+          <p className="text-yellow-700 text-xs">Hors ligne</p>
+        </div>
+      )}
+
+      <div className="flex flex-col lg:flex-row w-auto max-w-3xl h-[500px] bg-white dark:bg-black shadow-2xl rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800">
         {/* Carte d'authentification */}
         <div className="w-full lg:w-[380px] p-6 flex flex-col justify-center">
           <div className="text-center mb-6">
-            <DotLottieReact
-              src="https://lottie.host/b16ac9e9-c198-41ff-9592-03cd4fe72562/OiXbqMHDnc.lottie"
-              autoplay
-              loop
-              style={{ height: 90, width: "100%", margin: "0 auto" }}
-            />
+            <div className="flex justify-center item-center">
+              <Suspense fallback={<LottieFallback />}>
+                <DotLottieReact
+                  src="https://lottie.host/b16ac9e9-c198-41ff-9592-03cd4fe72562/OiXbqMHDnc.lottie"
+                  autoplay
+                  loop
+                  style={{ height: 100, width: "100%", margin: "0 auto" }}
+                />
+              </Suspense>
+            </div>
                      
             <h2 className="text-xl font-bold mt-4 text-gray-900 dark:text-white">
               Bienvenue !
@@ -163,13 +244,15 @@ export default function LoginPage() {
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <input
+                  ref={usernameRef}
                   id="username"
                   type="text"
                   placeholder="Entrez votre nom d'utilisateur"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  disabled={loading}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-500 dark:focus:ring-gray-400 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors text-sm"
+                  disabled={loading || !isOnline}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-500 dark:focus:ring-gray-400 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  autoComplete="username"
                 />
               </div>
             </div>
@@ -187,14 +270,16 @@ export default function LoginPage() {
                   placeholder="Entrez votre mot de passe"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-500 dark:focus:ring-gray-400 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors text-sm"
+                  disabled={loading || !isOnline}
+                  className="w-full pl-10 pr-10 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-500 dark:focus:ring-gray-400 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={loading}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-900 rounded transition-colors"
+                  disabled={loading || !isOnline}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-900 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label={showPassword ? "Cacher le mot de passe" : "Afficher le mot de passe"}
                 >
                   {showPassword ? (
                     <EyeOff className="h-3.5 w-3.5 text-gray-500" />
@@ -208,8 +293,8 @@ export default function LoginPage() {
             {/* Bouton de connexion */}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white dark:text-black font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] disabled:scale-100 focus:outline-none focus:ring-1 focus:ring-gray-500 text-sm mt-2"
+              disabled={loading || !isOnline}
+              className="w-full py-2.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white dark:text-black font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] disabled:scale-100 focus:outline-none focus:ring-1 focus:ring-gray-500 text-sm mt-2 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
@@ -226,7 +311,14 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Problème de connexion ?{" "}
-              <button className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium transition-colors">
+              <button 
+                type="button"
+                className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium transition-colors"
+                onClick={() => {
+                  // Ajouter ici la logique pour contacter le support
+                  console.log("Contact support");
+                }}
+              >
                 Contactez le support
               </button>
             </p>
@@ -234,11 +326,15 @@ export default function LoginPage() {
         </div>
 
         {/* Section image */}
-        <div className="w-full lg:w-[400px] h-48 lg:h-full">
-          <img
-            src="https://preview.redd.it/french-and-moroccan-soldiers-during-exercise-chergui-2022-v0-5520hwmqu1k91.jpg?width=640&crop=smart&auto=webp&s=2b20b317e85e27193b1d1b44e90a2fb65a59414e"
+        <div className="w-full lg:w-[400px] hidden lg:block h-48 lg:h-full">
+          <Image
+            quality={75}
+            height={400}
+            width={400}
+            src="/img/army.jpg"
             alt="Forces armées"
             className="w-full h-full object-cover"
+            priority
           />
         </div>
       </div>

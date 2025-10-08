@@ -75,9 +75,15 @@ export default function StageTable({
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('fr-FR');
-  };
+  if (!dateString) return 'N/A';
+  
+  // Create date in local timezone without timezone conversion
+  const date = new Date(dateString);
+  // Adjust for timezone offset
+  const adjustedDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+  
+  return adjustedDate.toLocaleDateString('fr-FR');
+};
 
   return (
     <div className="overflow-x-auto">
@@ -135,7 +141,7 @@ export default function StageTable({
               <td className="p-4">
                 <button
                   onClick={() => handleShowDetail(stage)}
-                  className="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-gray-900 hover:cursor-pointer focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+                  className="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 daek:focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-gray-900 hover:cursor-pointer focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
                 >
                   <Users className="h-4 w-4" />
                   <span className="font-medium">

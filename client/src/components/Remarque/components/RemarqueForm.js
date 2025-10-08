@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { X, Calendar, User, FileText, Award, Search } from "lucide-react";
+import { formatDateForInput } from '@/hooks/dateUtils';
 
 export default function RemarqueForm({
   open,

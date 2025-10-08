@@ -6,6 +6,7 @@ import StagiaireTable from "./components/StagiaireTable";
 import StagiaireForm from "./components/StagiaireForm";
 import StagiaireDetailDialog from "./components/StagiaireDetailDialog";
 import StagiaireDialogs from "./components/StagiaireDialogs";
+import { formatDateForInput, getYearFromDate } from '@/hooks/dateUtils';
 
 export default function StagiairesPage() {
   const API_URL = process.env.NEXT_PUBLIC_STRAPI_API_URL;
@@ -71,19 +72,6 @@ export default function StagiairesPage() {
     "Lieutenant-colonel",
     "Colonel (plein)",
   ];
-
-  // دالة لاستخراج السنة من التاريخ مع معالجة المنطقة الزمنية
-  const getYearFromDate = (dateString) => {
-    if (!dateString) return '';
-    try {
-      // استخدام UTC لتجنب مشاكل المنطقة الزمنية
-      const date = new Date(dateString);
-      return date.getUTCFullYear();
-    } catch (error) {
-      console.error('Error parsing date:', dateString, error);
-      return '';
-    }
-  };
 
   useEffect(() => {
     fetchStagiaires();
@@ -183,9 +171,8 @@ export default function StagiairesPage() {
     if (stagiaire) {
       setEditingStagiaire(stagiaire.documentId || stagiaire.id);
       
-      const formattedDate = stagiaire.date_naissance
-        ? new Date(stagiaire.date_naissance).toISOString().split("T")[0]
-        : "";
+      // استخدام formatDateForInput لضبط تاريخ الميلاد
+      const formattedDate = formatDateForInput(stagiaire.date_naissance);
 
       setOriginalProfile(stagiaire.profile || null);
 
@@ -195,7 +182,7 @@ export default function StagiairesPage() {
         first_name: stagiaire.first_name || "",
         last_name: stagiaire.last_name || "",
         grade: stagiaire.grade || "",
-        date_naissance: formattedDate,
+        date_naissance: formattedDate, // استخدام التاريخ المعدل
         phone: stagiaire.phone || "",
         groupe_sanguaine: stagiaire.groupe_sanguaine || "",
         profile: stagiaire.profile || null,
@@ -405,7 +392,7 @@ export default function StagiairesPage() {
     const matchesBrigade = !filters.brigade || stagiaire.brigade?.documentId === filters.brigade;
     const matchesGrade = !filters.grade || stagiaire.grade === filters.grade;
     
-    // فلترة حسب السنة (مطابقة نصية)
+    // استخدام getYearFromDate للفلترة
     const matchesYear = !filters.year || 
       (stagiaire.brigade?.year && 
        getYearFromDate(stagiaire.brigade.year).toString().includes(filters.year));
@@ -489,7 +476,6 @@ export default function StagiairesPage() {
               onChange={(e) => setFilters((f) => ({ ...f, year: e.target.value }))}
               className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-sidebar-primary focus:border-transparent text-foreground"
             />
-           
           </div>
         </div>
       </div>

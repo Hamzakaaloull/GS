@@ -2,6 +2,7 @@
 "use client";
 import React, { useState, useMemo } from "react";
 import { X, Calendar, Users, User, IdCard, MapPin, Search } from "lucide-react";
+import { formatDateForDisplay } from '@/hooks/dateUtils';
 
 export default function PermissionDetailDialog({
   open,
@@ -25,17 +26,6 @@ export default function PermissionDetailDialog({
   }, [permission?.stagiaires, searchStagiaire]);
 
   if (!open || !permission) return null;
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Non spécifié';
-    try {
-      const date = new Date(dateString);
-      date.setDate(date.getDate() + 1); // Add 1 day for display only
-      return date.toLocaleDateString('fr-FR');
-    } catch (error) {
-      return 'Date invalide';
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -81,7 +71,7 @@ export default function PermissionDetailDialog({
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">Date de début</span>
                     </div>
-                    <span className="font-medium text-foreground">{formatDate(permission.start_date)}</span>
+                    <span className="font-medium text-foreground">{formatDateForDisplay(permission.start_date)}</span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -89,7 +79,7 @@ export default function PermissionDetailDialog({
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm text-muted-foreground">Date de fin</span>
                     </div>
-                    <span className="font-medium text-foreground">{formatDate(permission.end_date)}</span>
+                    <span className="font-medium text-foreground">{formatDateForDisplay(permission.end_date)}</span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -241,15 +231,15 @@ export default function PermissionDetailDialog({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Créé le</p>
-                <p className="text-foreground font-medium">{formatDate(permission.createdAt)}</p>
+                <p className="text-foreground font-medium">{formatDateForDisplay(permission.createdAt)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Modifié le</p>
-                <p className="text-foreground font-medium">{formatDate(permission.updatedAt)}</p>
+                <p className="text-foreground font-medium">{formatDateForDisplay(permission.updatedAt)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Publié le</p>
-                <p className="text-foreground font-medium">{formatDate(permission.publishedAt)}</p>
+                <p className="text-foreground font-medium">{formatDateForDisplay(permission.publishedAt)}</p>
               </div>
             </div>
           </div>

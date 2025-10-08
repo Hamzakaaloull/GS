@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { X, User, Calendar, FileText, Award, PieChart } from "lucide-react";
+import { formatDateForDisplay } from '@/hooks/dateUtils';
 
 export default function RemarqueDetailDialog({
   open,
@@ -9,11 +10,6 @@ export default function RemarqueDetailDialog({
   getStagiaireStats
 }) {
   if (!open || !remarque) return null;
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Non spécifié';
-    return new Date(dateString).toLocaleDateString('fr-FR');
-  };
 
   const getTypeColor = (type) => {
     switch (type?.toLowerCase()) {
@@ -60,7 +56,7 @@ export default function RemarqueDetailDialog({
                 Remarque #{remarque.documentId}
               </h3>
               <p className="text-muted-foreground">
-                Créée le {formatDate(remarque.createdAt)}
+                Créée le {formatDateForDisplay(remarque.createdAt)}
               </p>
             </div>
           </div>
@@ -78,7 +74,7 @@ export default function RemarqueDetailDialog({
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Date</p>
-                      <p className="text-foreground font-medium">{formatDate(remarque.date)}</p>
+                      <p className="text-foreground font-medium">{formatDateForDisplay(remarque.date)}</p>
                     </div>
                   </div>
 
@@ -224,15 +220,15 @@ export default function RemarqueDetailDialog({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Créé le</p>
-                <p className="text-foreground font-medium">{formatDate(remarque.createdAt)}</p>
+                <p className="text-foreground font-medium">{formatDateForDisplay(remarque.createdAt)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Modifié le</p>
-                <p className="text-foreground font-medium">{formatDate(remarque.updatedAt)}</p>
+                <p className="text-foreground font-medium">{formatDateForDisplay(remarque.updatedAt)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Publié le</p>
-                <p className="text-foreground font-medium">{formatDate(remarque.publishedAt)}</p>
+                <p className="text-foreground font-medium">{formatDateForDisplay(remarque.publishedAt)}</p>
               </div>
             </div>
           </div>

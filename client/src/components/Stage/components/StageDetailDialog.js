@@ -13,10 +13,16 @@ export default function StageDetailDialog({
 
   if (!open || !stage) return null;
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Non spécifié';
-    return new Date(dateString).toLocaleDateString('fr-FR');
-  };
+ const formatDate = (dateString) => {
+  if (!dateString) return 'Non spécifié';
+  
+  // Create date in local timezone without timezone conversion
+  const date = new Date(dateString);
+  // Adjust for timezone offset
+  const adjustedDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+  
+  return adjustedDate.toLocaleDateString('fr-FR');
+};
 
   const getFilteredItems = () => {
     const items = stage[activeTab] || [];

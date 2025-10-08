@@ -567,15 +567,9 @@ export interface ApiPermisionPermision extends Struct.CollectionTypeSchema {
     start_date: Schema.Attribute.Date;
     type: Schema.Attribute.Enumeration<
       [
-        'Permission ordinaire',
-        'Permission exceptionnelle',
-        'Permission de longue dur\u00E9e',
-        'Permission pour convenances personnelles',
-        'Permission de convalescence',
-        'Permission pour raisons familiales graves',
-        'Permission lib\u00E9rale',
-        'Permission d\u2019\u00E9loignement',
-        'Permission d\u2019\u00E9tudes',
+        'permission exceptionnelle',
+        'permission de repos',
+        'Permission cong\u00E9',
       ]
     >;
     updatedAt: Schema.Attribute.DateTime;
