@@ -139,3 +139,25 @@
 .stagiaire-table td {
   @apply px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white;
 }
+
+.video-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  filter: blur(200px);
+}
+
+.video-fallback {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, #1e3a8a, #3d3232);
+  z-index: 0;
+  filter: blur(200px);
+}

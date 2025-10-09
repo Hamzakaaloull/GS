@@ -112,9 +112,12 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-
+   console.log("authdata" , authData);
+   console.log("userName", authData.user?.username);
       // Sauvegarder le token
       localStorage.setItem("token", authData.jwt);
+      localStorage.setItem("userName", authData.user?.username || "not specified");
+
 
       // Récupérer les données utilisateur
       const userRes = await fetch(`${API}/api/users/me?populate=role`, {
