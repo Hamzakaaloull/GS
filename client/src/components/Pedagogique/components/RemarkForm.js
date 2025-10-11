@@ -1,13 +1,13 @@
 // components/Pedagogique/components/RemarkForm.js
 "use client";
 import React, { useState, useEffect } from "react";
-import { X, Calendar, User, BookOpen, Clock, FileText } from "lucide-react";
+import { X, Calendar, User, BookOpen, Clock, FileText, Plus, Check, Trash2 } from "lucide-react";
+import { adjustDateForDisplay, formatDateForDisplay, formatDateForAPI } from "../../../hooks/dateUtils";
 
 export default function RemarkForm({
   open,
   onClose,
   onSuccess,
-  remark,
   instructeurs,
   subjects
 }) {
@@ -15,349 +15,376 @@ export default function RemarkForm({
   
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
-  const [showRemarkForm, setShowRemarkForm] = useState(false);
-  const [formData, setFormData] = useState({
-    date: "",
+  const [remarks, setRemarks] = useState([]);
+  const [currentRemark, setCurrentRemark] = useState({
     type: "positive",
     content: "",
-    instructeur: null,
-    subject: null,
+    instructeur: "",
+    subject: "",
     start_time: "08:00",
     end_time: "09:00"
   });
 
   useEffect(() => {
-    if (remark) {
-      setFormData({
-        date: remark.date ? new Date(remark.date).toISOString().split('T')[0] : "",
-        type: remark.type || "positive",
-        content: remark.content || "",
-        instructeur: remark.instructeur?.documentId || null,
-        subject: remark.subject?.documentId || null,
-        start_time: remark.start_time || "08:00",
-        end_time: remark.end_time || "09:00"
-      });
-      setShowRemarkForm(true);
-    } else {
-      setFormData({
-        date: "",
+    if (open) {
+      setSelectedDate("");
+      setRemarks([]);
+      setCurrentRemark({
         type: "positive",
         content: "",
-        instructeur: null,
-        subject: null,
+        instructeur: "",
+        subject: "",
         start_time: "08:00",
         end_time: "09:00"
       });
     }
-  }, [remark]);
+  }, [open]);
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setCurrentRemark(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleDateSelection = () => {
-    if (!selectedDate) {
-      alert("Veuillez sélectionner une date");
+  const addRemark = () => {
+    if (!currentRemark.instructeur || !currentRemark.content) {
+      alert("Veuillez remplir l'instructeur et le contenu");
       return;
     }
-    setFormData(prev => ({ ...prev, date: selectedDate }));
-    setShowRemarkForm(true);
+
+    const newRemark = {
+      id: Date.now(), // Temporary ID
+      ...currentRemark,
+      date: selectedDate
+    };
+
+    setRemarks(prev => [...prev, newRemark]);
+    
+    // Reset current remark form
+    setCurrentRemark({
+      type: "positive",
+      content: "",
+      instructeur: "",
+      subject: "",
+      start_time: "08:00",
+      end_time: "09:00"
+    });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const removeRemark = (index) => {
+    setRemarks(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async () => {
+    if (remarks.length === 0) {
+      alert("Veuillez ajouter au moins une remarque");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const url = remark
-        ? `${API_URL}/api/remark-instructeurs/${remark.documentId}`
-        : `${API_URL}/api/remark-instructeurs`;
+      const createPromises = remarks.map(async (remark) => {
+        const requestData = {
+          data: {
+            date: `${formatDateForAPI(remark.date)}T00:00:00.000Z`,
+            type: remark.type,
+            content: remark.content,
+            instructeur: remark.instructeur,
+            subject: remark.subject || null,
+            start_time: remark.start_time,
+            end_time: remark.end_time
+          }
+        };
 
-      const method = remark ? "PUT" : "POST";
+        const res = await fetch(`${API_URL}/api/remark-instructeurs`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(requestData),
+        });
 
-      const requestData = {
-        data: {
-          date: formData.date ? `${formData.date}T00:00:00.000Z` : null,
-          type: formData.type,
-          content: formData.content,
-          instructeur: formData.instructeur ? { connect: [formData.instructeur] } : { disconnect: [] },
-          subject: formData.subject ? { connect: [formData.subject] } : { disconnect: [] },
-          start_time: formData.start_time,
-          end_time: formData.end_time
+        if (!res.ok) {
+          throw new Error('Erreur lors de la création');
         }
-      };
 
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(requestData),
+        return res.json();
       });
 
-      if (res.ok) {
-        onSuccess();
-        if (remark) {
-          onClose();
-        } else {
-          // Réinitialiser le formulaire pour ajouter une autre remarque
-          setFormData({
-            date: formData.date, // Garder la même date
-            type: "positive",
-            content: "",
-            instructeur: null,
-            subject: null,
-            start_time: "08:00",
-            end_time: "09:00"
-          });
-        }
-      } else {
-        throw new Error('Erreur lors de l\'opération');
-      }
+      await Promise.all(createPromises);
+      onSuccess();
+      onClose();
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('Error submitting remarks:', error);
       alert('Erreur lors de l\'enregistrement');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleClose = () => {
-    setShowRemarkForm(false);
-    setSelectedDate("");
-    onClose();
+  const getInstructeurName = (instructeurId) => {
+    const instructeur = instructeurs.find(i => 
+      i.id === instructeurId || i.documentId === instructeurId
+    );
+    return instructeur ? `${instructeur.attributes?.first_name || instructeur.first_name} ${instructeur.attributes?.last_name || instructeur.last_name}` : "Inconnu";
+  };
+
+  const getSubjectName = (subjectId) => {
+    const subject = subjects.find(s => 
+      s.id === subjectId || s.documentId === subjectId
+    );
+    return subject ? subject.attributes?.title || subject.title : "Non spécifié";
   };
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-card border border-border rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-card border border-border rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-xl font-semibold text-foreground">
-            {remark ? "Modifier la remarque" : showRemarkForm ? "Ajouter une remarque" : "Sélectionner la date"}
+            Ajouter des remarques
           </h2>
           <button
-            onClick={handleClose}
+            onClick={onClose}
             className="p-2 hover:bg-muted rounded-lg transition-colors text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {!showRemarkForm ? (
-          // Étape 1: Sélection de la date
-          <div className="p-6 space-y-6">
-            <div className="text-center">
-              <Calendar className="h-16 w-16 text-primary mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                Sélectionnez la date
-              </h3>
-              <p className="text-muted-foreground">
-                Choisissez la date pour laquelle vous souhaitez ajouter des remarques
-              </p>
-            </div>
-
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                <Calendar className="h-4 w-4" />
-                Date *
-              </label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
-                required
-              />
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-foreground"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={handleDateSelection}
-                disabled={!selectedDate}
-                className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-              >
-                Continuer
-              </button>
-            </div>
+        <div className="p-6 space-y-6">
+          {/* Sélection de la date */}
+          <div className="bg-muted/30 rounded-lg p-4">
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+              <Calendar className="h-4 w-4" />
+              Date *
+            </label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
+              required
+            />
           </div>
-        ) : (
-          // Étape 2: Formulaire de remarque
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
-            {/* Date (affichage seulement) */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                <Calendar className="h-4 w-4" />
-                Date
-              </label>
-              <div className="w-full px-3 py-2 bg-muted border border-input rounded-lg text-foreground">
-                {new Date(formData.date).toLocaleDateString('fr-FR')}
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Instructeur */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                  <User className="h-4 w-4" />
-                  Instructeur *
-                </label>
-                <select
-                  value={formData.instructeur || ""}
-                  onChange={(e) => handleInputChange('instructeur', e.target.value || null)}
-                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
-                  required
-                >
-                  <option value="">Sélectionnez un instructeur</option>
-                  {instructeurs.map((instructeur) => (
-                    <option key={instructeur.documentId} value={instructeur.documentId}>
-                      {instructeur.first_name} {instructeur.last_name}
-                    </option>
-                  ))}
-                </select>
+          {selectedDate && (
+            <>
+              {/* Compteur de remarques */}
+              <div className="bg-primary/10 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-foreground">
+                    Remarques pour le {formatDateForDisplay(selectedDate)}
+                  </span>
+                  <span className="bg-primary text-primary-foreground px-2 py-1 rounded-md text-sm">
+                    {remarks.length} remarque(s)
+                  </span>
+                </div>
               </div>
 
-              {/* Sujet */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                  <BookOpen className="h-4 w-4" />
-                  Sujet
-                </label>
-                <select
-                  value={formData.subject || ""}
-                  onChange={(e) => handleInputChange('subject', e.target.value || null)}
-                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
-                >
-                  <option value="">Sélectionnez un sujet</option>
-                  {subjects.map((subject) => (
-                    <option key={subject.documentId} value={subject.documentId}>
-                      {subject.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+              {/* Formulaire d'ajout d'une remarque */}
+              <div className="bg-card border border-border rounded-lg p-4">
+                <h3 className="text-lg font-medium text-foreground mb-4">
+                  Ajouter une nouvelle remarque
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {/* Instructeur */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                      <User className="h-4 w-4" />
+                      Instructeur *
+                    </label>
+                    <select
+                      value={currentRemark.instructeur}
+                      onChange={(e) => handleInputChange('instructeur', e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
+                      required
+                    >
+                      <option value="">Sélectionnez un instructeur</option>
+                      {instructeurs.map((instructeur) => (
+                        <option 
+                          key={instructeur.id || instructeur.documentId} 
+                          value={instructeur.id || instructeur.documentId}
+                        >
+                          {instructeur.attributes?.first_name || instructeur.first_name} {instructeur.attributes?.last_name || instructeur.last_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Type */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                  <FileText className="h-4 w-4" />
-                  Type *
-                </label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => handleInputChange('type', e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
-                  required
-                >
-                  <option value="positive">Positive</option>
-                  <option value="negative">Négative</option>
-                </select>
-              </div>
+                  {/* Matière */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                      <BookOpen className="h-4 w-4" />
+                      Matière
+                    </label>
+                    <select
+                      value={currentRemark.subject}
+                      onChange={(e) => handleInputChange('subject', e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
+                    >
+                      <option value="">Sélectionnez une matière</option>
+                      {subjects.map((subject) => (
+                        <option 
+                          key={subject.id || subject.documentId} 
+                          value={subject.id || subject.documentId}
+                        >
+                          {subject.attributes?.title || subject.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
-              {/* Heure de début */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                  <Clock className="h-4 w-4" />
-                  Heure de début *
-                </label>
-                <input
-                  type="time"
-                  value={formData.start_time}
-                  onChange={(e) => handleInputChange('start_time', e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
-                  required
-                />
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  {/* Type */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                      <FileText className="h-4 w-4" />
+                      Type *
+                    </label>
+                    <select
+                      value={currentRemark.type}
+                      onChange={(e) => handleInputChange('type', e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
+                      required
+                    >
+                      <option value="positive">Positive</option>
+                      <option value="negative">Négative</option>
+                    </select>
+                  </div>
 
-              {/* Heure de fin */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                  <Clock className="h-4 w-4" />
-                  Heure de fin *
-                </label>
-                <input
-                  type="time"
-                  value={formData.end_time}
-                  onChange={(e) => handleInputChange('end_time', e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
-                  required
-                />
-              </div>
-            </div>
+                  {/* Heure de début */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                      <Clock className="h-4 w-4" />
+                      Heure de début *
+                    </label>
+                    <input
+                      type="time"
+                      value={currentRemark.start_time}
+                      onChange={(e) => handleInputChange('start_time', e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
+                      required
+                    />
+                  </div>
 
-            {/* Contenu */}
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                <FileText className="h-4 w-4" />
-                Contenu *
-              </label>
-              <textarea
-                value={formData.content}
-                onChange={(e) => handleInputChange('content', e.target.value)}
-                placeholder="Détails de la remarque..."
-                rows={4}
-                className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
-                required
-              />
-            </div>
+                  {/* Heure de fin */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                      <Clock className="h-4 w-4" />
+                      Heure de fin *
+                    </label>
+                    <input
+                      type="time"
+                      value={currentRemark.end_time}
+                      onChange={(e) => handleInputChange('end_time', e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
+                      required
+                    />
+                  </div>
+                </div>
 
-            {/* Actions */}
-            <div className="flex gap-3 pt-4 border-t border-border">
-              {!remark && (
+                {/* Contenu */}
+                <div className="mb-4">
+                  <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                    <FileText className="h-4 w-4" />
+                    Contenu *
+                  </label>
+                  <textarea
+                    value={currentRemark.content}
+                    onChange={(e) => handleInputChange('content', e.target.value)}
+                    placeholder="Détails de la remarque..."
+                    rows={3}
+                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
+                    required
+                  />
+                </div>
+
+                {/* Bouton d'ajout */}
                 <button
                   type="button"
-                  onClick={() => setShowRemarkForm(false)}
+                  onClick={addRemark}
+                  disabled={!currentRemark.instructeur || !currentRemark.content}
+                  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Ajouter cette remarque
+                </button>
+              </div>
+
+              {/* Liste des remarques ajoutées */}
+              {remarks.length > 0 && (
+                <div className="bg-card border border-border rounded-lg p-4">
+                  <h3 className="text-lg font-medium text-foreground mb-4">
+                    Remarques à enregistrer ({remarks.length})
+                  </h3>
+                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                    {remarks.map((remark, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              remark.type === 'positive' 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                            }`}>
+                              {remark.type === 'positive' ? 'Positive' : 'Négative'}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {remark.start_time} - {remark.end_time}
+                            </span>
+                          </div>
+                          <div className="text-sm font-medium text-foreground">
+                            {getInstructeurName(remark.instructeur)}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {remark.content}
+                          </div>
+                          {remark.subject && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Matière: {getSubjectName(remark.subject)}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => removeRemark(index)}
+                          className="p-1 hover:bg-destructive/10 rounded text-destructive ml-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions finales */}
+              <div className="flex gap-3 pt-4 border-t border-border">
+                <button
+                  onClick={onClose}
                   className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-foreground"
                 >
-                  Changer de date
+                  Annuler
                 </button>
-              )}
-              <button
-                type="submit"
-                disabled={loading || !formData.instructeur || !formData.content}
-                className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loading && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                )}
-                {remark ? "Modifier" : "Ajouter"}
-              </button>
-              {!remark && (
                 <button
-                  type="button"
-                  onClick={() => {
-                    handleSubmit(new Event('submit'));
-                    setFormData({
-                      date: formData.date,
-                      type: "positive",
-                      content: "",
-                      instructeur: null,
-                      subject: null,
-                      start_time: "08:00",
-                      end_time: "09:00"
-                    });
-                  }}
-                  disabled={loading || !formData.instructeur || !formData.content}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  onClick={handleSubmit}
+                  disabled={loading || remarks.length === 0}
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  Ajouter et continuer
+                  {loading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                  Confirmer ({remarks.length})
                 </button>
-              )}
-            </div>
-          </form>
-        )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,9 +1,14 @@
 // components/Pedagogique/components/RemarkTab.js
 "use client";
-import React, { useState, useEffect } from "react";
-import { Plus, Download, Search, Edit, Trash2, Eye, X, Calendar, User, BookOpen, ChevronDown, ChevronUp, Filter } from "lucide-react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
+import { Plus, Download, Search, Eye, X, Calendar, User, BookOpen, ChevronDown, ChevronUp, Filter, BarChart3, MoreVertical } from "lucide-react";
 import RemarkForm from "./RemarkForm";
 import ExportRemarkDialog from "./ExportRemarkDialog";
+import ConfirmationDialog from "./ConfirmationDialog";
+import { formatDateForDisplay } from "../../../hooks/dateUtils";
+
+// Lazy load statistics component
+const StatisticsDialog = lazy(() => import('./StatisticsDialog'));
 
 export default function RemarkTab() {
   const API_URL = process.env.NEXT_PUBLIC_STRAPI_API_URL;
@@ -13,9 +18,8 @@ export default function RemarkTab() {
   const [subjects, setSubjects] = useState([]);
   const [openForm, setOpenForm] = useState(false);
   const [openExport, setOpenExport] = useState(false);
-  const [selectedRemark, setSelectedRemark] = useState(null);
-  const [editingRemark, setEditingRemark] = useState(null);
-  const [loading, setLoading] = useState({ global: false, delete: false });
+  const [openStatistics, setOpenStatistics] = useState(false);
+  const [loading, setLoading] = useState({ global: false });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedInstructeur, setSelectedInstructeur] = useState("");
@@ -23,6 +27,8 @@ export default function RemarkTab() {
   const [selectedType, setSelectedType] = useState("");
   const [expandedDates, setExpandedDates] = useState(new Set());
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [actionMenu, setActionMenu] = useState({ open: false, remark: null, x: 0, y: 0 });
+  const [detailModal, setDetailModal] = useState({ open: false, remark: null });
 
   useEffect(() => {
     fetchRemarks();
@@ -34,7 +40,7 @@ export default function RemarkTab() {
     setLoading(prev => ({ ...prev, global: true }));
     try {
       const res = await fetch(
-        `${API_URL}/api/remark-instructeurs?populate=instructeur&populate=subject&populate=*`,
+        `${API_URL}/api/remark-instructeurs?populate=instructeur&populate=subject`,
         { 
           headers: { 
             Authorization: `Bearer ${localStorage.getItem("token")}` 
@@ -85,44 +91,6 @@ export default function RemarkTab() {
     }
   };
 
-  const handleOpenForm = (remark = null) => {
-    if (remark) {
-      setEditingRemark(remark);
-      setSelectedRemark(remark);
-    } else {
-      setEditingRemark(null);
-      setSelectedRemark(null);
-    }
-    setOpenForm(true);
-  };
-
-  const handleDelete = async (remark) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cette remarque ?")) return;
-    
-    setLoading(prev => ({ ...prev, delete: true }));
-    try {
-      const res = await fetch(
-        `${API_URL}/api/remark-instructeurs/${remark.documentId}`,
-        {
-          method: "DELETE",
-          headers: { 
-            Authorization: `Bearer ${localStorage.getItem("token")}` 
-          },
-        }
-      );
-
-      if (res.ok) {
-        await fetchRemarks();
-        showSnackbar("Remarque supprimée avec succès", "success");
-      }
-    } catch (error) {
-      console.error("Error deleting remark:", error);
-      showSnackbar("Erreur lors de la suppression", "error");
-    } finally {
-      setLoading(prev => ({ ...prev, delete: false }));
-    }
-  };
-
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
     setTimeout(() => setSnackbar({ ...snackbar, open: false }), 3000);
@@ -130,9 +98,9 @@ export default function RemarkTab() {
 
   // Grouper les remarques par date
   const remarksByDate = remarks.reduce((acc, remark) => {
-    if (!remark.date) return acc;
+    if (!remark.attributes?.date && !remark.date) return acc;
     
-    const date = new Date(remark.date).toLocaleDateString('fr-FR');
+    const date = formatDateForDisplay(remark.attributes?.date || remark.date);
     if (!acc[date]) {
       acc[date] = [];
     }
@@ -157,23 +125,58 @@ export default function RemarkTab() {
   const filteredDates = Object.keys(remarksByDate).filter(date => {
     const remarksForDate = remarksByDate[date];
     
-    const matchesSearch = remarksForDate.some(remark =>
-      (remark.instructeur?.first_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (remark.instructeur?.last_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (remark.subject?.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (remark.content?.toLowerCase() || '').includes(searchQuery.toLowerCase())
-    );
+    const matchesSearch = remarksForDate.some(remark => {
+      const remarkData = remark.attributes || remark;
+      const instructeur = remarkData.instructeur?.data || remarkData.instructeur;
+      const subject = remarkData.subject?.data || remarkData.subject;
+      
+      return (
+        (instructeur?.attributes?.first_name?.toLowerCase() || instructeur?.first_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (instructeur?.attributes?.last_name?.toLowerCase() || instructeur?.last_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (subject?.attributes?.title?.toLowerCase() || subject?.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+        (remarkData.content?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+      );
+    });
 
-    const matchesDate = !selectedDate || date === new Date(selectedDate).toLocaleDateString('fr-FR');
+    const matchesDate = !selectedDate || date === formatDateForDisplay(selectedDate);
+    
     const matchesInstructeur = !selectedInstructeur || 
-      remarksForDate.some(remark => remark.instructeur?.documentId === selectedInstructeur);
+      remarksForDate.some(remark => {
+        const remarkData = remark.attributes || remark;
+        const instructeur = remarkData.instructeur?.data || remarkData.instructeur;
+        return (instructeur?.id || instructeur?.documentId) == selectedInstructeur;
+      });
+    
     const matchesSubject = !selectedSubject || 
-      remarksForDate.some(remark => remark.subject?.documentId === selectedSubject);
+      remarksForDate.some(remark => {
+        const remarkData = remark.attributes || remark;
+        const subject = remarkData.subject?.data || remarkData.subject;
+        return (subject?.id || subject?.documentId) == selectedSubject;
+      });
+    
     const matchesType = !selectedType || 
-      remarksForDate.some(remark => remark.type === selectedType);
+      remarksForDate.some(remark => {
+        const remarkData = remark.attributes || remark;
+        return remarkData.type === selectedType;
+      });
 
     return matchesSearch && matchesDate && matchesInstructeur && matchesSubject && matchesType;
   });
+
+  const openActionMenu = (e, remark) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActionMenu({
+      open: true,
+      remark,
+      x: e.clientX,
+      y: e.clientY
+    });
+  };
+
+  const closeActionMenu = () => {
+    setActionMenu({ open: false, remark: null });
+  };
 
   const clearFilters = () => {
     setSearchQuery("");
@@ -184,6 +187,23 @@ export default function RemarkTab() {
   };
 
   const hasActiveFilters = searchQuery || selectedDate || selectedInstructeur || selectedSubject || selectedType;
+
+  const getRemarkDisplayData = (remark) => {
+    const remarkData = remark.attributes || remark;
+    const instructeur = remarkData.instructeur?.data || remarkData.instructeur;
+    const subject = remarkData.subject?.data || remarkData.subject;
+    
+    return {
+      id: remark.id || remark.documentId,
+      date: remarkData.date,
+      type: remarkData.type,
+      content: remarkData.content,
+      start_time: remarkData.start_time,
+      end_time: remarkData.end_time,
+      instructeur: instructeur,
+      subject: subject
+    };
+  };
 
   return (
     <div className="space-y-6">
@@ -197,6 +217,13 @@ export default function RemarkTab() {
         </div>
         <div className="flex gap-2">
           <button 
+            onClick={() => setOpenStatistics(true)}
+            className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <BarChart3 className="w-4 h-4" />
+            Statistiques
+          </button>
+          <button 
             onClick={() => setOpenExport(true)}
             className="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
@@ -204,7 +231,7 @@ export default function RemarkTab() {
             Exporter Fiche
           </button>
           <button 
-            onClick={() => handleOpenForm()}
+            onClick={() => setOpenForm(true)}
             className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -249,14 +276,14 @@ export default function RemarkTab() {
             >
               <option value="">Tous les instructeurs</option>
               {instructeurs.map((instructeur) => (
-                <option key={instructeur.documentId} value={instructeur.documentId}>
-                  {instructeur.first_name} {instructeur.last_name}
+                <option key={instructeur.id || instructeur.documentId} value={instructeur.id || instructeur.documentId}>
+                  {instructeur.attributes?.first_name || instructeur.first_name} {instructeur.attributes?.last_name || instructeur.last_name}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Filtre par sujet */}
+          {/* Filtre par matière */}
           <div className="relative">
             <BookOpen className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <select
@@ -264,10 +291,10 @@ export default function RemarkTab() {
               onChange={(e) => setSelectedSubject(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground appearance-none"
             >
-              <option value="">Tous les sujets</option>
+              <option value="">Toutes les matières</option>
               {subjects.map((subject) => (
-                <option key={subject.documentId} value={subject.documentId}>
-                  {subject.title}
+                <option key={subject.id || subject.documentId} value={subject.id || subject.documentId}>
+                  {subject.attributes?.title || subject.title}
                 </option>
               ))}
             </select>
@@ -288,46 +315,16 @@ export default function RemarkTab() {
           </div>
         </div>
 
-        {/* Affichage des filtres actifs */}
+        {/* Bouton effacer les filtres */}
         {hasActiveFilters && (
-          <div className="mt-3 p-3 bg-primary/10 rounded-lg">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">Filtres actifs:</span>
-              <button
-                onClick={clearFilters}
-                className="text-sm text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
-              >
-                <X className="h-3 w-3" />
-                Tout effacer
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {searchQuery && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs">
-                  Recherche: {searchQuery}
-                </span>
-              )}
-              {selectedDate && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs">
-                  Date: {new Date(selectedDate).toLocaleDateString('fr-FR')}
-                </span>
-              )}
-              {selectedInstructeur && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs">
-                  Instructeur: {instructeurs.find(i => i.documentId === selectedInstructeur)?.first_name}
-                </span>
-              )}
-              {selectedSubject && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs">
-                  Sujet: {subjects.find(s => s.documentId === selectedSubject)?.title}
-                </span>
-              )}
-              {selectedType && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs">
-                  Type: {selectedType === 'positive' ? 'Positive' : 'Négative'}
-                </span>
-              )}
-            </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 border border-input rounded-lg hover:bg-muted transition-colors text-foreground flex items-center gap-2"
+            >
+              <X className="h-4 w-4" />
+              Effacer les filtres
+            </button>
           </div>
         )}
       </div>
@@ -376,7 +373,7 @@ export default function RemarkTab() {
                       <thead className="bg-muted/50">
                         <tr>
                           <th className="text-left p-4 font-semibold text-foreground">Instructeur</th>
-                          <th className="text-left p-4 font-semibold text-foreground">Sujet</th>
+                          <th className="text-left p-4 font-semibold text-foreground">Matière</th>
                           <th className="text-left p-4 font-semibold text-foreground">Type</th>
                           <th className="text-left p-4 font-semibold text-foreground">Heure</th>
                           <th className="text-left p-4 font-semibold text-foreground">Contenu</th>
@@ -384,64 +381,59 @@ export default function RemarkTab() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
-                        {remarksByDate[date].map((remark) => (
-                          <tr key={remark.documentId} className="hover:bg-muted/30 transition-colors">
-                            <td className="p-4">
-                              <div className="flex items-center gap-2">
-                                <User className="h-4 w-4 text-primary" />
-                                <span className="text-foreground">
-                                  {remark.instructeur?.first_name} {remark.instructeur?.last_name}
+                        {remarksByDate[date].map((remark) => {
+                          const remarkData = getRemarkDisplayData(remark);
+                          return (
+                            <tr key={remarkData.id} className="hover:bg-muted/30 transition-colors">
+                              <td className="p-4">
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-primary" />
+                                  <span className="text-foreground">
+                                    {remarkData.instructeur?.attributes?.first_name || remarkData.instructeur?.first_name} {remarkData.instructeur?.attributes?.last_name || remarkData.instructeur?.last_name}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex items-center gap-2">
+                                  <BookOpen className="h-4 w-4 text-primary" />
+                                  <span className="text-foreground">
+                                    {remarkData.subject?.attributes?.title || remarkData.subject?.title || 'Non spécifié'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  remarkData.type === 'positive' 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                                }`}>
+                                  {remarkData.type === 'positive' ? 'Positive' : 'Négative'}
                                 </span>
-                              </div>
-                            </td>
-                            <td className="p-4">
-                              <div className="flex items-center gap-2">
-                                <BookOpen className="h-4 w-4 text-primary" />
-                                <span className="text-foreground">
-                                  {remark.subject?.title || 'Non spécifié'}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="p-4">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                remark.type === 'positive' 
-                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                              }`}>
-                                {remark.type === 'positive' ? 'Positive' : 'Négative'}
-                              </span>
-                            </td>
-                            <td className="p-4">
-                              <div className="text-foreground">
-                                {remark.start_time} - {remark.end_time}
-                              </div>
-                            </td>
-                            <td className="p-4">
-                              <div className="text-foreground max-w-md">
-                                {remark.content}
-                              </div>
-                            </td>
-                            <td className="p-4">
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  onClick={() => handleOpenForm(remark)}
-                                  className="p-2 hover:bg-muted rounded-lg transition-colors text-foreground"
-                                  title="Modifier"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(remark)}
-                                  disabled={loading.delete}
-                                  className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive"
-                                  title="Supprimer"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+                              <td className="p-4">
+                                <div className="text-foreground">
+                                  {remarkData.start_time} - {remarkData.end_time}
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <div className="text-foreground max-w-md">
+                                  {remarkData.content}
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex justify-end">
+                                  <button
+                                    onClick={(e) => openActionMenu(e, remark)}
+                                    className="p-2 hover:bg-muted rounded-lg transition-colors text-foreground relative"
+                                    title="Actions"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -452,12 +444,38 @@ export default function RemarkTab() {
         )}
       </div>
 
+      {/* Menu d'actions contextuel */}
+      {actionMenu.open && (
+        <div 
+          className="fixed z-50 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[160px]"
+          style={{ left: actionMenu.x, top: actionMenu.y }}
+        >
+          <button
+            onClick={() => {
+              setDetailModal({ open: true, remark: actionMenu.remark });
+              closeActionMenu();
+            }}
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+          >
+            <Eye className="h-4 w-4" />
+            Voir détails
+          </button>
+        </div>
+      )}
+
+      {/* Clic outside pour fermer le menu d'actions */}
+      {actionMenu.open && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={closeActionMenu}
+        />
+      )}
+
       {/* Formulaire Remarque */}
       <RemarkForm
         open={openForm}
         onClose={() => setOpenForm(false)}
         onSuccess={fetchRemarks}
-        remark={editingRemark}
         instructeurs={instructeurs}
         subjects={subjects}
       />
@@ -470,6 +488,30 @@ export default function RemarkTab() {
         instructeurs={instructeurs}
         subjects={subjects}
       />
+
+      {/* Dialogue de statistiques */}
+      <Suspense fallback={
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      }>
+        {openStatistics && (
+          <StatisticsDialog
+            open={openStatistics}
+            onClose={() => setOpenStatistics(false)}
+            remarks={remarks}
+            instructeurs={instructeurs}
+          />
+        )}
+      </Suspense>
+
+      {/* Modal de détail */}
+      {detailModal.open && (
+        <RemarkDetailModal
+          remark={detailModal.remark}
+          onClose={() => setDetailModal({ open: false, remark: null })}
+        />
+      )}
 
       {/* Snackbar */}
       {snackbar.open && (

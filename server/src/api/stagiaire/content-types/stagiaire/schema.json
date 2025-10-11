@@ -26,10 +26,10 @@
     "grade": {
       "type": "enumeration",
       "enum": [
-        "Soldat  de 2e classe",
-        "Soldat  de 1re classe",
-        "Caporal ",
-        "Caporal-chef ",
+        "Soldat de 2e classe",
+        "Soldat de 1re classe",
+        "Caporal",
+        "Caporal-chef",
         "Sergent",
         "Sergent-chef",
         "Sergent-major",

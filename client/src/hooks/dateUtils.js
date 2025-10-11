@@ -12,7 +12,11 @@ export const adjustDateForDisplay = (dateString) => {
     return null;
   }
 };
-
+export const formatDateForAPI = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toISOString().split('T')[0];
+};
 // دالة لتنسيق التاريخ للعرض
 export const formatDateForDisplay = (dateString) => {
   const adjustedDate = adjustDateForDisplay(dateString);

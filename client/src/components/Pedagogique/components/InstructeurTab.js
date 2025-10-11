@@ -1,9 +1,9 @@
 // components/Pedagogique/components/InstructeurTab.js
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { 
   Plus, Download, Search, Filter, X, Edit, Trash2, Eye, 
-  User, Phone, MapPin, Calendar, Award
+  User, Phone, MapPin, Calendar, Award, MoreVertical
 } from "lucide-react";
 import InstructeurForm from "./InstructeurForm";
 import ExportInstructeurDialog from "./ExportInstructeurDialog";
@@ -29,6 +29,10 @@ export default function InstructeurTab() {
   const [selectedSpecialite, setSelectedSpecialite] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("");
 
+  // État pour le menu d'actions
+  const [openActionMenu, setOpenActionMenu] = useState(null);
+  const actionMenuRef = useRef(null);
+
   const grades = [
     "Soldat de 2e classe",
     "Soldat de 1re classe",
@@ -53,7 +57,19 @@ export default function InstructeurTab() {
     
     // Écouter les événements d'alerte personnalisés
     window.addEventListener('showSnackbar', handleCustomAlert);
-    return () => window.removeEventListener('showSnackbar', handleCustomAlert);
+    
+    // Fermer le menu d'actions en cliquant à l'extérieur
+    const handleClickOutside = (event) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target)) {
+        setOpenActionMenu(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      window.removeEventListener('showSnackbar', handleCustomAlert);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleCustomAlert = (event) => {
@@ -108,16 +124,19 @@ export default function InstructeurTab() {
       setSelectedInstructeur(null);
     }
     setOpenForm(true);
+    setOpenActionMenu(null); // Fermer le menu
   };
 
   const handleShowDetail = (instructeur) => {
     setSelectedInstructeur(instructeur);
     setOpenDetail(true);
+    setOpenActionMenu(null); // Fermer le menu
   };
 
   const handleDelete = (instructeur) => {
     setSelectedInstructeur(instructeur);
     setOpenConfirm(true);
+    setOpenActionMenu(null); // Fermer le menu
   };
 
   const handleDeleteConfirmed = async () => {
@@ -149,6 +168,10 @@ export default function InstructeurTab() {
       setOpenConfirm(false);
       setSelectedInstructeur(null);
     }
+  };
+
+  const toggleActionMenu = (instructeurId) => {
+    setOpenActionMenu(openActionMenu === instructeurId ? null : instructeurId);
   };
 
   const showSnackbar = (message, severity = "success") => {
@@ -333,29 +356,43 @@ export default function InstructeurTab() {
                       </div>
                     </td>
                     <td className="p-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => handleShowDetail(instructeur)}
-                          className="p-2 hover:bg-blue-500/10 rounded-lg transition-colors text-blue-600"
-                          title="Voir détails"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleOpenForm(instructeur)}
-                          className="p-2 hover:bg-muted rounded-lg transition-colors text-foreground"
-                          title="Modifier"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(instructeur)}
-                          disabled={loading.delete}
-                          className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-destructive"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+                      <div className="flex justify-end">
+                        <div className="relative" ref={actionMenuRef}>
+                          <button
+                            onClick={() => toggleActionMenu(instructeur.documentId)}
+                            className="p-2 hover:bg-muted rounded-lg transition-colors text-foreground"
+                            title="Actions"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                          
+                          {openActionMenu === instructeur.documentId && (
+                            <div className="absolute right-0 top-10 z-10 bg-card border border-border rounded-lg shadow-lg py-2 min-w-[140px]">
+                              <button
+                                onClick={() => handleShowDetail(instructeur)}
+                                className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2 transition-colors"
+                              >
+                                <Eye className="h-4 w-4 text-blue-600" />
+                                Voir détails
+                              </button>
+                              <button
+                                onClick={() => handleOpenForm(instructeur)}
+                                className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-muted flex items-center gap-2 transition-colors"
+                              >
+                                <Edit className="h-4 w-4" />
+                                Modifier
+                              </button>
+                              <button
+                                onClick={() => handleDelete(instructeur)}
+                                disabled={loading.delete}
+                                className="w-full px-4 py-2 text-left text-sm text-destructive hover:bg-destructive/10 flex items-center gap-2 transition-colors disabled:opacity-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Supprimer
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>

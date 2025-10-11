@@ -127,16 +127,16 @@ export default function InstructeurForm({
 
       const method = instructeur ? "PUT" : "POST";
 
-      // بناء البيانات بنفس طريقة StagiaireForm
+      // إعداد البيانات مع معالجة القيم الفارغة بشكل صحيح
       const requestData = {
         data: {
           first_name: formData.first_name,
           last_name: formData.last_name,
-          mle: formData.mle,
-          grade: formData.grade,
-          phone: formData.phone,
+          mle: formData.mle || null, // إرسال null بدلاً من string فارغ
+          grade: formData.grade || null,
+          phone: formData.phone ? parseInt(formData.phone) : null, // تحويل إلى number إذا كان له قيمة
           birth_day: formData.birth_day || null,
-          adress: formData.adress
+          adress: formData.adress || null
         }
       };
 
@@ -168,7 +168,12 @@ export default function InstructeurForm({
         showAlert(instructeur ? "Instructeur modifié avec succès" : "Instructeur créé avec succès", 'success');
       } else {
         console.error('API Error Response:', responseData);
-        throw new Error(responseData.error?.message || 'Erreur lors de l\'opération');
+        // عرض تفاصيل الخطأ بشكل أفضل
+        const errorMessage = responseData.error?.details?.errors?.map(err => 
+          `${err.path}: ${err.message}`
+        ).join(', ') || responseData.error?.message || 'Erreur lors de l\'opération';
+        
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -328,12 +333,15 @@ export default function InstructeurForm({
                   Téléphone
                 </label>
                 <input
-                  type="tel"
+                  type="number"
                   value={formData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="+212 6 00 00 00 00"
+                  placeholder="Numéro de téléphone"
                   className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Laisser vide si non spécifié
+                </p>
               </div>
 
               {/* Date de naissance */}

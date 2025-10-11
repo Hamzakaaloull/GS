@@ -32,6 +32,15 @@
       "relation": "oneToMany",
       "target": "api::remark-instructeur.remark-instructeur",
       "mappedBy": "subject"
+    },
+    "is_militaire": {
+      "type": "boolean"
+    },
+    "specialite": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::specialite.specialite",
+      "inversedBy": "subjects"
     }
   }
 }

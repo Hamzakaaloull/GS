@@ -7,12 +7,12 @@ import SubjectTab from "./components/SubjectTab";
 import RemarkTab from "./components/RemarkTab";
 
 export default function PedagogiquePage() {
-  const [activeTab, setActiveTab] = useState("instructeur");
+  const [activeTab, setActiveTab] = useState("subject");
   const [loading, setLoading] = useState(false);
 
   const tabs = [
     { id: "instructeur", label: "Instructeurs", icon: Users },
-    { id: "subject", label: "Sujets", icon: BookOpen },
+    { id: "subject", label: "Matières", icon: BookOpen },
     { id: "remark", label: "Remarques", icon: NotepadText }
   ];
 
@@ -23,7 +23,7 @@ export default function PedagogiquePage() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">Pédagogique</h1>
           <p className="text-muted-foreground mt-1">
-            Gestion des instructeurs, sujets et remarques pédagogiques
+            Gestion des instructeurs, matières et remarques pédagogiques
           </p>
         </div>
       </div>

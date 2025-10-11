@@ -17,7 +17,8 @@
     "type": {
       "type": "enumeration",
       "enum": [
-        "a"
+        "negative",
+        "positive"
       ]
     },
     "content": {
@@ -34,6 +35,12 @@
       "relation": "manyToOne",
       "target": "api::subject.subject",
       "inversedBy": "remark_instructeurs"
+    },
+    "start_time": {
+      "type": "time"
+    },
+    "end_time": {
+      "type": "time"
     }
   }
 }

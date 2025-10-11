@@ -557,10 +557,10 @@ export interface ApiInstructeurInstructeur extends Struct.CollectionTypeSchema {
     first_name: Schema.Attribute.String;
     grade: Schema.Attribute.Enumeration<
       [
-        'Soldat  de 2e classe',
-        'Soldat  de 1re classe',
-        'Caporal ',
-        'Caporal-chef ',
+        'Soldat de 2e classe',
+        'Soldat de 1re classe',
+        'Caporal',
+        'Caporal-chef',
         'Sergent',
         'Sergent-chef',
         'Sergent-major',
@@ -691,6 +691,7 @@ export interface ApiRemarkInstructeurRemarkInstructeur
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     date: Schema.Attribute.Date;
+    end_time: Schema.Attribute.Time;
     instructeur: Schema.Attribute.Relation<
       'manyToOne',
       'api::instructeur.instructeur'
@@ -702,8 +703,9 @@ export interface ApiRemarkInstructeurRemarkInstructeur
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
+    start_time: Schema.Attribute.Time;
     subject: Schema.Attribute.Relation<'manyToOne', 'api::subject.subject'>;
-    type: Schema.Attribute.Enumeration<['a']>;
+    type: Schema.Attribute.Enumeration<['negative', 'positive']>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -778,6 +780,7 @@ export interface ApiSpecialiteSpecialite extends Struct.CollectionTypeSchema {
       'oneToMany',
       'api::stagiaire.stagiaire'
     >;
+    subjects: Schema.Attribute.Relation<'oneToMany', 'api::subject.subject'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -845,10 +848,10 @@ export interface ApiStagiaireStagiaire extends Struct.CollectionTypeSchema {
     first_name: Schema.Attribute.String;
     grade: Schema.Attribute.Enumeration<
       [
-        'Soldat  de 2e classe',
-        'Soldat  de 1re classe',
-        'Caporal ',
-        'Caporal-chef ',
+        'Soldat de 2e classe',
+        'Soldat de 1re classe',
+        'Caporal',
+        'Caporal-chef',
         'Sergent',
         'Sergent-chef',
         'Sergent-major',
@@ -913,6 +916,7 @@ export interface ApiSubjectSubject extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     description: Schema.Attribute.Text;
+    is_militaire: Schema.Attribute.Boolean;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -923,6 +927,10 @@ export interface ApiSubjectSubject extends Struct.CollectionTypeSchema {
     remark_instructeurs: Schema.Attribute.Relation<
       'oneToMany',
       'api::remark-instructeur.remark-instructeur'
+    >;
+    specialite: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::specialite.specialite'
     >;
     title: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
