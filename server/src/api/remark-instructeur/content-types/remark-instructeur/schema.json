@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "remark_instructeurs",
+  "info": {
+    "singularName": "remark-instructeur",
+    "pluralName": "remark-instructeurs",
+    "displayName": "remark_instructeur"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "date": {
+      "type": "date"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "a"
+      ]
+    },
+    "content": {
+      "type": "text"
+    },
+    "instructeur": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::instructeur.instructeur",
+      "inversedBy": "remark_instructeurs"
+    },
+    "subject": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::subject.subject",
+      "inversedBy": "remark_instructeurs"
+    }
+  }
+}

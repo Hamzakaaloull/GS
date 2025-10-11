@@ -30,8 +30,9 @@ const Consultation = lazy(() => import("../../components/Consultation/page"))
 const Specialite = lazy(() => import("../../components/Specialite/page"))
 const Brigade = lazy(() => import("../../components/brigade/page"))
 const Assistance = lazy(() => import("../../components/Assistance/page"))
+const Pedagogique = lazy(() => import("../../components/Pedagogique/page"))
 
-// Loading component
+// Composant de chargement
 const LoadingFallback = () => (
   <div className="flex items-center justify-center h-64">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -60,7 +61,7 @@ function MainContent() {
           }
         }
       } catch (error) {
-        console.error("Error fetching user role:", error)
+        console.error("Erreur lors de la récupération du rôle:", error)
       }
     }
 
@@ -68,42 +69,58 @@ function MainContent() {
   }, [])
 
   const renderActiveComponent = () => {
-    if (userRole === "doctor" && activeComponent !== "Consultation") {
-      return <Consultation />
-    }
-    
-    if (userRole === "public" && activeComponent === "Users") {
-      return <Specialite />
-    }
-
-    switch (activeComponent) {
-      case 'Users':
-        return userRole !== "public" ? <UsersPage /> : <Specialite />
-      case 'Stagiaires':
-        return userRole !== "doctor" ? <Stagiaires /> : <Consultation />
-      case 'Stage':
-        return userRole !== "doctor" ? <Stage /> : <Consultation />
-      case 'Remarque':
-        return userRole !== "doctor" ? <Remarque /> : <Consultation />
-      case 'Penition':
-        return userRole !== "doctor" ? <Penition /> : <Consultation />
-      case 'Permission':
-        return userRole !== "doctor" ? <Permission /> : <Consultation />
-      case 'Consultation':
-        return <Consultation />
-      case 'Specialite':
+    // Vérifications de sécurité basées sur le rôle
+    if (userRole === "admin") {
+      // Admin peut tout voir
+      switch (activeComponent) {
+        case 'Users': return <UsersPage />
+        case 'Stagiaires': return <Stagiaires />
+        case 'Stage': return <Stage />
+        case 'Remarque': return <Remarque />
+        case 'Penition': return <Penition />
+        case 'Permission': return <Permission />
+        case 'Consultation': return <Consultation />
+        case 'Specialite': return <Specialite />
+        case 'Brigade': return <Brigade />
+        case 'Assistance': return <Assistance />
+        case 'Pedagogique': return <Pedagogique />
+        default: return <UsersPage />
+      }
+    } else if (userRole === "public") {
+      // Public ne peut pas voir Pedagogique et Users
+      if (activeComponent === "Pedagogique" || activeComponent === "Users") {
         return <Specialite />
-      case 'Brigade':
-        return userRole !== "doctor" ? <Brigade /> : <Consultation />
-      case 'Assistance':
-        return <Assistance />
-      default:
-        if (userRole === "doctor") return <Consultation />
-        if (userRole === "public") return <Specialite />
-        return <UsersPage />
+      }
+      switch (activeComponent) {
+        case 'Stagiaires': return <Stagiaires />
+        case 'Stage': return <Stage />
+        case 'Remarque': return <Remarque />
+        case 'Penition': return <Penition />
+        case 'Permission': return <Permission />
+        case 'Consultation': return <Consultation />
+        case 'Specialite': return <Specialite />
+        case 'Brigade': return <Brigade />
+        case 'Assistance': return <Assistance />
+        default: return <Specialite />
+      }
+    } else if (userRole === "chef_cellule") {
+      // Chef cellule ne peut voir que Pedagogique
+      if (activeComponent !== "Pedagogique") {
+        return <Pedagogique />
+      }
+      return <Pedagogique />
+    } else if (userRole === "doctor") {
+      // Doctor ne peut voir que Consultation
+      if (activeComponent !== "Consultation") {
+        return <Consultation />
+      }
+      return <Consultation />
+    } else {
+      // Rôle non reconnu
+      return <div>Rôle non autorisé</div>
     }
   }
- 
+
   return (
     <SidebarInset>
       <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -114,7 +131,7 @@ function MainContent() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">dashbord</BreadcrumbLink>
+                <BreadcrumbLink href="#">Tableau de bord</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>

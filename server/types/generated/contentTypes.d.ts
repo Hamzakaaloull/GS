@@ -537,6 +537,68 @@ export interface ApiConsultationConsultation
   };
 }
 
+export interface ApiInstructeurInstructeur extends Struct.CollectionTypeSchema {
+  collectionName: 'instructeurs';
+  info: {
+    displayName: 'instructeur';
+    pluralName: 'instructeurs';
+    singularName: 'instructeur';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    adress: Schema.Attribute.String;
+    birth_day: Schema.Attribute.Date;
+    cin: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    first_name: Schema.Attribute.String;
+    grade: Schema.Attribute.Enumeration<
+      [
+        'Soldat  de 2e classe',
+        'Soldat  de 1re classe',
+        'Caporal ',
+        'Caporal-chef ',
+        'Sergent',
+        'Sergent-chef',
+        'Sergent-major',
+        'Adjudant',
+        'Adjudant-chef',
+        'Sous-lieutenant',
+        'Lieutenant',
+        'Capitaine',
+        'Commandant',
+        'Lieutenant-colonel',
+        'Colonel (plein)',
+      ]
+    >;
+    last_name: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::instructeur.instructeur'
+    > &
+      Schema.Attribute.Private;
+    mle: Schema.Attribute.String;
+    phone: Schema.Attribute.Integer;
+    profile: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    publishedAt: Schema.Attribute.DateTime;
+    remark_instructeurs: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::remark-instructeur.remark-instructeur'
+    >;
+    specialite: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::specialite.specialite'
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiPermisionPermision extends Struct.CollectionTypeSchema {
   collectionName: 'permisions';
   info: {
@@ -612,6 +674,42 @@ export interface ApiPunitionPunition extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiRemarkInstructeurRemarkInstructeur
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'remark_instructeurs';
+  info: {
+    displayName: 'remark_instructeur';
+    pluralName: 'remark-instructeurs';
+    singularName: 'remark-instructeur';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    content: Schema.Attribute.Text;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    date: Schema.Attribute.Date;
+    instructeur: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::instructeur.instructeur'
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::remark-instructeur.remark-instructeur'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    subject: Schema.Attribute.Relation<'manyToOne', 'api::subject.subject'>;
+    type: Schema.Attribute.Enumeration<['a']>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiRemarqueRemarque extends Struct.CollectionTypeSchema {
   collectionName: 'remarques';
   info: {
@@ -663,6 +761,10 @@ export interface ApiSpecialiteSpecialite extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     description: Schema.Attribute.Text;
+    instructeurs: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::instructeur.instructeur'
+    >;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -786,6 +888,43 @@ export interface ApiStagiaireStagiaire extends Struct.CollectionTypeSchema {
       'api::specialite.specialite'
     >;
     stage: Schema.Attribute.Relation<'manyToOne', 'api::stage.stage'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiSubjectSubject extends Struct.CollectionTypeSchema {
+  collectionName: 'subjects';
+  info: {
+    displayName: 'subject';
+    pluralName: 'subjects';
+    singularName: 'subject';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    content: Schema.Attribute.Media<
+      'images' | 'files' | 'videos' | 'audios',
+      true
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::subject.subject'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    remark_instructeurs: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::remark-instructeur.remark-instructeur'
+    >;
+    title: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1306,12 +1445,15 @@ declare module '@strapi/strapi' {
       'api::brigade-name.brigade-name': ApiBrigadeNameBrigadeName;
       'api::brigade.brigade': ApiBrigadeBrigade;
       'api::consultation.consultation': ApiConsultationConsultation;
+      'api::instructeur.instructeur': ApiInstructeurInstructeur;
       'api::permision.permision': ApiPermisionPermision;
       'api::punition.punition': ApiPunitionPunition;
+      'api::remark-instructeur.remark-instructeur': ApiRemarkInstructeurRemarkInstructeur;
       'api::remarque.remarque': ApiRemarqueRemarque;
       'api::specialite.specialite': ApiSpecialiteSpecialite;
       'api::stage.stage': ApiStageStage;
       'api::stagiaire.stagiaire': ApiStagiaireStagiaire;
+      'api::subject.subject': ApiSubjectSubject;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

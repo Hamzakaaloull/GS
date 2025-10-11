@@ -5,7 +5,6 @@ import { Command, BookOpen, Users, NotepadText, Gavel, Command as Cmd, Hospital,
 import Image from "next/image"
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import { useNavigation } from './navigation-context'
 import {
@@ -89,6 +88,13 @@ export function AppSidebar(props) {
   // جميع عناصر التنقل الأساسية
   const allNavMainItems = [
     { 
+      title: "Pedagogique", 
+      url: "#", 
+      icon: Hospital, 
+      isActive: activeComponent === "Pedagogique",
+      onClick: () => setActiveComponent("Pedagogique")
+    },
+    { 
       title: "Users", 
       url: "#", 
       icon: ShieldUser, 
@@ -153,32 +159,23 @@ export function AppSidebar(props) {
     },
   ]
 
-  // عناصر التنقل للدكتور (فقط Consultation)
-  const doctorNavItems = [
-    { 
-      title: "Consultation", 
-      url: "#", 
-      icon: Hospital, 
-      isActive: activeComponent === "Consultation",
-      onClick: () => setActiveComponent("Consultation")
-    }
-  ]
-
-  // عناصر التنقل للمستخدم العام (كل شيء ما عدا Users)
-  const publicNavItems = allNavMainItems.filter(item => item.title !== "Users")
-
   // تحديد عناصر التنقل بناءً على دور المستخدم
   const getNavItems = () => {
-    if (!userRaw) return allNavMainItems
+    if (!userRaw) return []
     
     const userRole = userRaw.role?.name || userRaw.role
     
-    if (userRole === "doctor") {
-      return doctorNavItems
+    if (userRole === "admin") {
+      return allNavMainItems
     } else if (userRole === "public") {
-      return publicNavItems
+      return allNavMainItems.filter(item => 
+        item.title !== "Pedagogique" && item.title !== "Users"
+      )
+    } else if (userRole === "chef_cellule") {
+      return allNavMainItems.filter(item => item.title === "Pedagogique")
+    } else if (userRole === "doctor") {
+      return allNavMainItems.filter(item => item.title === "Consultation")
     } else {
-      // admin أو أي دور آخر - عرض كل شيء
       return allNavMainItems
     }
   }
@@ -230,10 +227,14 @@ export function AppSidebar(props) {
           
           // تعيين المكون الافتراضي بناءً على دور المستخدم
           const userRole = user.role?.name || user.role
-          if (userRole === "doctor") {
-            setActiveComponent("Consultation")
+          if (userRole === "admin") {
+            setActiveComponent("Users")
           } else if (userRole === "public") {
             setActiveComponent("Specialite")
+          } else if (userRole === "chef_cellule") {
+            setActiveComponent("Pedagogique")
+          } else if (userRole === "doctor") {
+            setActiveComponent("Consultation")
           } else {
             setActiveComponent("Users")
           }

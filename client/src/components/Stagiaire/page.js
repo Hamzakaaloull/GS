@@ -1,11 +1,13 @@
 // app/stagiaires/page.js
 "use client";
 import React, { useState, useEffect } from "react";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Download } from "lucide-react";
 import StagiaireTable from "./components/StagiaireTable";
 import StagiaireForm from "./components/StagiaireForm";
 import StagiaireDetailDialog from "./components/StagiaireDetailDialog";
 import StagiaireDialogs from "./components/StagiaireDialogs";
+import ExportStagiaireModal from "./components/ExportStagiaireModal";
+import ExportStagiairePDF from "./components/ExportStagiairePDF";
 import { formatDateForInput, getYearFromDate } from '@/hooks/dateUtils';
 
 export default function StagiairesPage() {
@@ -19,6 +21,9 @@ export default function StagiairesPage() {
   const [open, setOpen] = useState(false);
   const [openConfirm, setOpenConfirm] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportPDFOpen, setExportPDFOpen] = useState(false);
+  const [selectedStagiaires, setSelectedStagiaires] = useState([]);
   const [selectedStagiaire, setSelectedStagiaire] = useState(null);
   const [editingStagiaire, setEditingStagiaire] = useState(null);
   const [originalProfile, setOriginalProfile] = useState(null);
@@ -85,7 +90,7 @@ export default function StagiairesPage() {
     setLoading((p) => ({ ...p, global: true }));
     try {
       const res = await fetch(
-        `${API_URL}/api/stagiaires?populate=specialite&populate=stage&populate=brigade&populate=brigade.brigade_name&populate=profile`,
+        `${API_URL}/api/stagiaires?populate=specialite&populate=stage&populate=brigade&populate=brigade.brigade_name&populate=profile&populate=remarques&populate=consultations&populate=punitions&populate=permision`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -171,7 +176,6 @@ export default function StagiairesPage() {
     if (stagiaire) {
       setEditingStagiaire(stagiaire.documentId || stagiaire.id);
       
-      // استخدام formatDateForInput لضبط تاريخ الميلاد
       const formattedDate = formatDateForInput(stagiaire.date_naissance);
 
       setOriginalProfile(stagiaire.profile || null);
@@ -182,7 +186,7 @@ export default function StagiairesPage() {
         first_name: stagiaire.first_name || "",
         last_name: stagiaire.last_name || "",
         grade: stagiaire.grade || "",
-        date_naissance: formattedDate, // استخدام التاريخ المعدل
+        date_naissance: formattedDate,
         phone: stagiaire.phone || "",
         groupe_sanguaine: stagiaire.groupe_sanguaine || "",
         profile: stagiaire.profile || null,
@@ -214,6 +218,16 @@ export default function StagiairesPage() {
   function handleShowDetail(stagiaire) {
     setSelectedStagiaire(stagiaire);
     setDetailOpen(true);
+  }
+
+  function handleOpenExportModal() {
+    setExportModalOpen(true);
+  }
+
+  function handleExportStagiaires(selectedStagiaires) {
+    setSelectedStagiaires(selectedStagiaires);
+    setExportModalOpen(false);
+    setExportPDFOpen(true);
   }
 
   async function handleImageUpload(file) {
@@ -392,7 +406,6 @@ export default function StagiairesPage() {
     const matchesBrigade = !filters.brigade || stagiaire.brigade?.documentId === filters.brigade;
     const matchesGrade = !filters.grade || stagiaire.grade === filters.grade;
     
-    // استخدام getYearFromDate للفلترة
     const matchesYear = !filters.year || 
       (stagiaire.brigade?.year && 
        getYearFromDate(stagiaire.brigade.year).toString().includes(filters.year));
@@ -408,18 +421,27 @@ export default function StagiairesPage() {
           <h1 className="text-3xl font-bold text-foreground">Gestion des Stagiaires</h1>
           <p className="text-muted-foreground mt-1">Gérez les stagiaires et leurs informations</p>
         </div>
-        <button
-          onClick={() => handleOpen()}
-          className="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Ajouter un Stagiaire
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleOpenExportModal}
+            className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Exporter Fiches
+          </button>
+          <button
+            onClick={() => handleOpen()}
+            className="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Ajouter un Stagiaire
+          </button>
+        </div>
       </div>
 
       {/* Search & Filters */}
-      <div className="bg-card border border-border rounded-lg p-4">
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div className="bg-card border border-border rounded-lg p-4 overflow-x-auto">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 min-w-[800px]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <input
@@ -467,7 +489,6 @@ export default function StagiairesPage() {
             ))}
           </select>
 
-          {/* حقل إدخال السنة */}
           <div>
             <input
               type="text"
@@ -522,6 +543,29 @@ export default function StagiairesPage() {
 
       {/* Details */}
       <StagiaireDetailDialog open={detailOpen} onClose={() => setDetailOpen(false)} stagiaire={selectedStagiaire} API_URL={API_URL} />
+
+      {/* Export Modal */}
+      <ExportStagiaireModal
+        open={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        stagiaires={stagiaires}
+        specialites={specialites}
+        stages={stages}
+        brigades={brigades}
+        grades={grades}
+        onExport={handleExportStagiaires}
+      />
+
+      {/* Export PDF Modal */}
+      <ExportStagiairePDF
+        open={exportPDFOpen}
+        onClose={() => setExportPDFOpen(false)}
+        stagiaires={selectedStagiaires}
+        onExport={(message, severity = "success") => {
+          showSnackbar(message, severity);
+          setExportPDFOpen(false);
+        }}
+      />
 
       {/* Dialogs */}
       <StagiaireDialogs

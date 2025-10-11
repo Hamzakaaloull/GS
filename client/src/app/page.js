@@ -15,12 +15,12 @@ import {
 // Lazy load Lottie
 const DotLottieReact = lazy(() =>
   import("@lottiefiles/dotlottie-react").then((mod) => {
-    // حاول استعمال ما هو موجود: default أو اسم مُصدّر شائع
+    // Essayer d'utiliser ce qui existe : default ou export commun
     return { default: mod?.default ?? mod?.DotLottieReact ?? mod };
   })
 );
 
-// Simple loading component for Lottie
+// Composant de chargement simple pour Lottie
 const LottieFallback = () => (
   <div className="h-24 w-24 bg-gray-200 animate-pulse rounded-lg mx-auto"></div>
 );
@@ -34,15 +34,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState("light");
 
-  const [isOnline, setIsonline] = useState(true);
+  const [isOnline, setIsOnline] = useState(true);
   const usernameRef = useRef(null);
   const API = process.env.NEXT_PUBLIC_STRAPI_API_URL;
 
-  // Animation and auto-focus effect
+  // Effet d'animation et auto-focus
   useEffect(() => {
-    
-    
-    // Focus on username input after component mounts
+    // Focus sur l'input username après le montage du composant
     const timer = setTimeout(() => {
       if (usernameRef.current) {
         usernameRef.current.focus();
@@ -52,32 +50,24 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Debounced network status check
+  // Vérification de l'état du réseau
   useEffect(() => {
-    let mounted = true;
-    let timeoutId;
-
+    // Définir l'état initial directement
+    setIsOnline(navigator.onLine);
+    
     const handleOnline = () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      if (mounted) setIsonline(true);
+      setIsOnline(true);
     };
 
     const handleOffline = () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        if (mounted) setIsonline(false);
-      }, 100);
+      setIsOnline(false);
     };
 
-    if (mounted) {
-      setIsonline(navigator.onLine);
-      window.addEventListener("online", handleOnline, { passive: true });
-      window.addEventListener("offline", handleOffline, { passive: true });
-    }
+    // Ajouter les écouteurs d'événements
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
-      mounted = false;
-      if (timeoutId) clearTimeout(timeoutId);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
@@ -112,12 +102,10 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
-   console.log("authdata" , authData);
-   console.log("userName", authData.user?.username);
+   
       // Sauvegarder le token
       localStorage.setItem("token", authData.jwt);
-      localStorage.setItem("userName", authData.user?.username || "not specified");
-
+      localStorage.setItem("userName", authData.user?.username || "non spécifié");
 
       // Récupérer les données utilisateur
       const userRes = await fetch(`${API}/api/users/me?populate=role`, {
@@ -150,21 +138,21 @@ export default function LoginPage() {
       }
 
       // Mettre à jour l'état de l'élément actif dans localStorage
-      localStorage.setItem("activeComponent", "Users");
+      localStorage.setItem("activeComponent", "Utilisateurs");
       localStorage.setItem("sidebarItems", JSON.stringify([
-        { title: "Users", isActive: true },
+        { title: "Utilisateurs", isActive: true },
         { title: "Stagiaires", isActive: false },
-        { title: "Stage", isActive: false },
-        { title: "Remarque", isActive: false },
-        { title: "Penition", isActive: false },
-        { title: "Permission", isActive: false },
-        { title: "Consultation", isActive: false },
-        { title: "Specialite", isActive: false }
+        { title: "Stages", isActive: false },
+        { title: "Remarques", isActive: false },
+        { title: "Pénalités", isActive: false },
+        { title: "Permissions", isActive: false },
+        { title: "Consultations", isActive: false },
+        { title: "Spécialités", isActive: false }
       ]));
 
       // Redirection basée sur le rôle
       setTimeout(() => {
-        if (roleName === "doctor" || roleName === "admin" || roleName === "public") {
+        if (roleName === "doctor" || roleName === "admin" || roleName === "public" || roleName === "chef_cellule") {
           router.push("/dashboard");
         } else {
           setError("Accès non autorisé");
@@ -187,7 +175,7 @@ export default function LoginPage() {
   return (
     <div 
       className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-black transition-all duration-500 ease-out">
-      {/* Theme Toggle */}
+      {/* Bouton de changement de thème */}
       <button
         onClick={toggleTheme}
         className="absolute top-4 right-4 p-2 rounded-lg bg-white dark:bg-black border border-gray-300 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors z-10"
@@ -200,7 +188,7 @@ export default function LoginPage() {
         )}
       </button>
 
-      {/* Network Status Indicator */}
+      {/* Indicateur de statut réseau */}
       {!isOnline && (
         <div className="absolute top-4 left-4 px-3 py-1 bg-yellow-100 border border-yellow-400 rounded-lg">
           <p className="text-yellow-700 text-xs">Hors ligne</p>
@@ -239,7 +227,7 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Champ Username */}
+            {/* Champ Nom d'utilisateur */}
             <div className="space-y-1">
               <label htmlFor="username" className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 Nom d'utilisateur

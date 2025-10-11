@@ -64,9 +64,9 @@ export default function ExportBrigadePDF({
         const rightX = pageWidth - margin;
 
         // شعار متمركز
-        const imgWidth = 30;
-        const imgHeight = 30;
-        const imgX = (pageWidth - imgWidth) / 2;
+        const imgWidth = 20;
+        const imgHeight = 20;
+        const imgX = ((pageWidth - imgWidth) / 2) - 10;
         const imgY = 10;
         try {
           if (logoDataUrl) {

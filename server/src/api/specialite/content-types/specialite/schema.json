@@ -34,6 +34,12 @@
       "relation": "manyToMany",
       "target": "api::stage.stage",
       "inversedBy": "specialites"
+    },
+    "instructeurs": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::instructeur.instructeur",
+      "mappedBy": "specialite"
     }
   }
 }
