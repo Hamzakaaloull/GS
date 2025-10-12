@@ -6,7 +6,7 @@ import RemarkForm from "./RemarkForm";
 import ExportRemarkDialog from "./ExportRemarkDialog";
 import ConfirmationDialog from "./ConfirmationDialog";
 import { formatDateForDisplay } from "../../../hooks/dateUtils";
-
+import RemarkDetailModal from "./RemarkDetailModal";
 // Lazy load statistics component
 const StatisticsDialog = lazy(() => import('./StatisticsDialog'));
 
@@ -48,6 +48,7 @@ export default function RemarkTab() {
         }
       );
       const data = await res.json();
+      console.log("Fetched remarks:", data);
       setRemarks(data.data || []);
     } catch (error) {
       console.error("Error fetching remarks:", error);
@@ -447,7 +448,7 @@ export default function RemarkTab() {
       {/* Menu d'actions contextuel */}
       {actionMenu.open && (
         <div 
-          className="fixed z-50 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[160px]"
+          className="fixed z-50 bg-card border border-border rounded-lg shadow-lg py-1 min-w-[160px] left-0 top-0"
           style={{ left: actionMenu.x, top: actionMenu.y }}
         >
           <button

@@ -43,6 +43,7 @@ export default function SubjectTab() {
         }
       );
       const data = await res.json();
+      console.log("Fetched subjects:", data);
       setSubjects(data.data || []);
     } catch (error) {
       console.error("Error fetching subjects:", error);

@@ -2,7 +2,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { X, Calendar, User, BookOpen, Clock, FileText, Plus, Check, Trash2 } from "lucide-react";
-import { adjustDateForDisplay, formatDateForDisplay, formatDateForAPI } from "../../../hooks/dateUtils";
+import { formatDateForDisplay, formatDateForAPI } from "@/hooks/dateUtils";
 
 export default function RemarkForm({
   open,
@@ -24,6 +24,7 @@ export default function RemarkForm({
     start_time: "08:00",
     end_time: "09:00"
   });
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -37,6 +38,7 @@ export default function RemarkForm({
         start_time: "08:00",
         end_time: "09:00"
       });
+      setError("");
     }
   }, [open]);
 
@@ -46,7 +48,7 @@ export default function RemarkForm({
 
   const addRemark = () => {
     if (!currentRemark.instructeur || !currentRemark.content) {
-      alert("Veuillez remplir l'instructeur et le contenu");
+      setError("Veuillez remplir l'instructeur et le contenu");
       return;
     }
 
@@ -67,6 +69,7 @@ export default function RemarkForm({
       start_time: "08:00",
       end_time: "09:00"
     });
+    setError("");
   };
 
   const removeRemark = (index) => {
@@ -75,23 +78,30 @@ export default function RemarkForm({
 
   const handleSubmit = async () => {
     if (remarks.length === 0) {
-      alert("Veuillez ajouter au moins une remarque");
+      setError("Veuillez ajouter au moins une remarque");
       return;
     }
 
     setLoading(true);
+    setError("");
 
     try {
       const createPromises = remarks.map(async (remark) => {
+        // Format time for Strapi (HH:mm:ss.SSS)
+        const formatTimeForAPI = (time) => {
+          if (time.includes('.')) return time;
+          return time + ':00.000';
+        };
+
         const requestData = {
           data: {
-            date: `${formatDateForAPI(remark.date)}T00:00:00.000Z`,
+            date: `${remark.date}T00:00:00.000Z`,
             type: remark.type,
             content: remark.content,
             instructeur: remark.instructeur,
             subject: remark.subject || null,
-            start_time: remark.start_time,
-            end_time: remark.end_time
+            start_time: formatTimeForAPI(remark.start_time),
+            end_time: formatTimeForAPI(remark.end_time)
           }
         };
 
@@ -105,7 +115,8 @@ export default function RemarkForm({
         });
 
         if (!res.ok) {
-          throw new Error('Erreur lors de la création');
+          const errorData = await res.json();
+          throw new Error(errorData.error?.message || 'Erreur lors de la création');
         }
 
         return res.json();
@@ -116,7 +127,7 @@ export default function RemarkForm({
       onClose();
     } catch (error) {
       console.error('Error submitting remarks:', error);
-      alert('Erreur lors de l\'enregistrement');
+      setError(error.message || 'Erreur lors de l\'enregistrement');
     } finally {
       setLoading(false);
     }
@@ -124,16 +135,17 @@ export default function RemarkForm({
 
   const getInstructeurName = (instructeurId) => {
     const instructeur = instructeurs.find(i => 
-      i.id === instructeurId || i.documentId === instructeurId
+      i.id == instructeurId || i.documentId == instructeurId
     );
-    return instructeur ? `${instructeur.attributes?.first_name || instructeur.first_name} ${instructeur.attributes?.last_name || instructeur.last_name}` : "Inconnu";
+    return instructeur ? `${instructeur.first_name} ${instructeur.last_name}` : "Inconnu";
   };
 
   const getSubjectName = (subjectId) => {
+    if (!subjectId) return "Non spécifié";
     const subject = subjects.find(s => 
-      s.id === subjectId || s.documentId === subjectId
+      s.id == subjectId || s.documentId == subjectId
     );
-    return subject ? subject.attributes?.title || subject.title : "Non spécifié";
+    return subject ? subject.title : "Non spécifié";
   };
 
   if (!open) return null;
@@ -154,6 +166,14 @@ export default function RemarkForm({
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Affichage des erreurs */}
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+              <strong className="font-bold">Erreur: </strong>
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
+
           {/* Sélection de la date */}
           <div className="bg-muted/30 rounded-lg p-4">
             <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
@@ -208,7 +228,7 @@ export default function RemarkForm({
                           key={instructeur.id || instructeur.documentId} 
                           value={instructeur.id || instructeur.documentId}
                         >
-                          {instructeur.attributes?.first_name || instructeur.first_name} {instructeur.attributes?.last_name || instructeur.last_name}
+                          {instructeur.first_name} {instructeur.last_name}
                         </option>
                       ))}
                     </select>
@@ -231,7 +251,7 @@ export default function RemarkForm({
                           key={subject.id || subject.documentId} 
                           value={subject.id || subject.documentId}
                         >
-                          {subject.attributes?.title || subject.title}
+                          {subject.title}
                         </option>
                       ))}
                     </select>
@@ -249,7 +269,7 @@ export default function RemarkForm({
                       value={currentRemark.type}
                       onChange={(e) => handleInputChange('type', e.target.value)}
                       className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-foreground"
-                      required
+                      
                     >
                       <option value="positive">Positive</option>
                       <option value="negative">Négative</option>
@@ -343,11 +363,9 @@ export default function RemarkForm({
                           <div className="text-sm text-muted-foreground">
                             {remark.content}
                           </div>
-                          {remark.subject && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Matière: {getSubjectName(remark.subject)}
-                            </div>
-                          )}
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Matière: {getSubjectName(remark.subject)}
+                          </div>
                         </div>
                         <button
                           onClick={() => removeRemark(index)}

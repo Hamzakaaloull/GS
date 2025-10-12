@@ -2,7 +2,7 @@
 "use client";
 import React from "react";
 import { X, Calendar, User, BookOpen, Clock, FileText } from "lucide-react";
-import { formatDateForDisplay } from "../../../utils/dateUtils";
+import { formatDateForDisplay } from "@/hooks/dateUtils";
 
 export default function RemarkDetailModal({ remark, onClose }) {
   if (!remark) return null;
