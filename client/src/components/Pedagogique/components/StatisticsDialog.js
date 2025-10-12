@@ -1,8 +1,8 @@
 // components/Pedagogique/components/StatisticsDialog.js
 "use client";
 import React, { useMemo, useState, useEffect } from "react";
-import { X, TrendingUp, TrendingDown, Award, Frown, Calendar, Filter, Download } from "lucide-react";
-import jsPDF from "jspdf";
+import { X, TrendingUp, TrendingDown, Award, Frown, Calendar, Filter, Download, Table } from "lucide-react";
+import { exportCertificate } from "./exportCertificate";
 
 export default function StatisticsDialog({ open, onClose, remarks, instructeurs }) {
   const [filterType, setFilterType] = useState("month");
@@ -10,6 +10,7 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [exportingTable, setExportingTable] = useState(false);
 
   // تهيئة التواريخ الافتراضية
   useEffect(() => {
@@ -65,6 +66,7 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
       if (instructorId) {
         if (!instructorStats[instructorId]) {
           instructorStats[instructorId] = {
+            id: instructorId,
             positive: 0,
             negative: 0,
             total: 0,
@@ -95,7 +97,8 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
       total: filteredRemarks.length,
       topPositive,
       topNegative,
-      filteredRemarks
+      filteredRemarks,
+      instructorStats: instructorsArray.sort((a, b) => b.positive - a.positive)
     };
   }, [remarks, filterType, selectedDate, selectedMonth, selectedYear]);
 
@@ -117,27 +120,7 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
     }
   };
 
-  const getPeriodTextForCertificate = () => {
-    switch (filterType) {
-      case "month":
-        return {
-          period: "mois",
-          value: new Date(selectedMonth + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
-        };
-      case "year":
-        return {
-          period: "année",
-          value: selectedYear
-        };
-      default:
-        return {
-          period: "période",
-          value: getFilterDisplayText()
-        };
-    }
-  };
-
-  const exportCertificate = async () => {
+  const handleExportCertificate = async () => {
     if (!statistics?.topPositive) {
       alert("Aucun instructeur positif trouvé pour exporter le certificat");
       return;
@@ -149,139 +132,42 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
     }
 
     setExporting(true);
-
     try {
-      const doc = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: [297, 210] // A4 landscape
-      });
-
-      // تحميل صورة الحدود
-      let borderImage = null;
-      try {
-        // يمكنك استبدال هذا الرابط بصورة الحدود الفعلية
-        const borderResponse = await fetch("/img/border.jpg");
-        if (borderResponse.ok) {
-          const borderBlob = await borderResponse.blob();
-          borderImage = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(borderBlob);
-          });
-        }
-      } catch (e) {
-        console.warn("Could not load border image:", e);
-      }
-
-      // تحميل الشعار
-      let logoDataUrl = null;
-      try {
-        const logoResponse = await fetch("/img/FarImg.png");
-        if (logoResponse.ok) {
-          const logoBlob = await logoResponse.blob();
-          logoDataUrl = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(logoBlob);
-          });
-        }
-      } catch (e) {
-        console.warn("Could not load logo image:", e);
-      }
-
-      // إضافة صورة الحدود إذا كانت متوفرة
-      if (borderImage) {
-        doc.addImage(borderImage, 'JPEG', 0, 0, 297, 210);
-      }
-
-      // إضافة الشعار في الأعلى
-      if (logoDataUrl) {
-        doc.addImage(logoDataUrl, 'PNG', 130, 15, 40, 40);
-      }
-
-      // التاريخ في أعلى اليسار
-      const currentDate = new Date().toLocaleDateString('fr-FR');
-      doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0);
-      doc.text(`Meknes, le ${currentDate}`, 20, 20);
-
-      // النص في أعلى اليمين
-      const rightX = 270;
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
+      const periodInfo = {
+        period: filterType === "month" ? "mois" : "année",
+        value: filterType === "month" 
+          ? new Date(selectedMonth + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+          : selectedYear
+      };
       
-      const maxWidth = Math.max(
-        doc.getTextWidth("ROYAUME DU MAROC"),
-        doc.getTextWidth("Forces Armées Royales"),
-        doc.getTextWidth("Place d'arme meknes"),
-        doc.getTextWidth("1 Bataillon de Setien des Transmissions")
-      );
-
-      doc.text("ROYAUME DU MAROC", rightX - (maxWidth - doc.getTextWidth("ROYAUME DU MAROC")) / 2, 16, { align: "right" });
-      doc.text("Forces Armées Royales", rightX - (maxWidth - doc.getTextWidth("Forces Armées Royales")) / 2, 22, { align: "right" });
-      doc.text("Place d'arme meknes", rightX - (maxWidth - doc.getTextWidth("Place d'arme meknes")) / 2, 28, { align: "right" });
-      doc.text("1 Bataillon de Setien des Transmissions", rightX - (maxWidth - doc.getTextWidth("1 Bataillon de Setien des Transmissions")) / 2, 34, { align: "right" });
-
-      // العنوان الرئيسي
-      doc.setFontSize(24);
-      doc.setFont(undefined, 'bold');
-      doc.setTextColor(0, 0, 139); // لون أزرق داكن
-      doc.text("Certificat d'Honneur et de Reconnaissance", 148, 70, { align: "center" });
-
-      // نص الشهادة
-      const periodInfo = getPeriodTextForCertificate();
-      const instructorName = `${statistics.topPositive.first_name} ${statistics.topPositive.last_name}`;
-      
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'normal');
-      doc.setTextColor(0, 0, 0);
-
-      // النص الأول
-      const text1 = `Le Commandant du 1° Bataillon de Soutien des Transmissions,`;
-      const text2 = `Monsieur M ElRRADI ANAS,`;
-      const text3 = `atteste que Monsieur ${instructorName}, enseignant au sein du bataillon, s'est distingué durant le ${periodInfo.period} de ${periodInfo.value} par son professionnalisme exemplaire, sa rigueur, ainsi que par son engagement constant dans l'accomplissement de ses missions pédagogiques et formatives.`;
-      const text4 = `En reconnaissance de ses efforts remarquables et de son dévouement,`;
-      const text5 = `la présente attestation lui est décernée en témoignage d'estime et d'appréciation,`;
-      const text6 = `et pour saluer sa contribution à l'amélioration du niveau de formation`;
-      const text7 = `et de discipline.`;
-
-      doc.setFont(undefined, 'bold');
-      doc.text(text1, 148, 100, { align: "center" });
-      doc.text(text2, 148, 107, { align: "center" });
-      
-      doc.setFont(undefined, 'normal');
-      const splitText3 = doc.splitTextToSize(text3, 250);
-      doc.text(splitText3, 148, 120, { align: "center" });
-      
-      const splitText4 = doc.splitTextToSize(text4, 250);
-      doc.text(splitText4, 148, 140, { align: "center" });
-      
-      const splitText5 = doc.splitTextToSize(text5, 250);
-      doc.text(splitText5, 148, 150, { align: "center" });
-      
-      const splitText6 = doc.splitTextToSize(text6, 250);
-      doc.text(splitText6, 148, 160, { align: "center" });
-      
-      doc.text(text7, 148, 170, { align: "center" });
-
-      // التوقيع في الأسفل
-      doc.setFontSize(10);
-      doc.text("Fait à 1° B.S.T, le " + currentDate, 200, 190, { align: "right" });
-      doc.setFont(undefined, 'bold');
-      doc.text("Le Commandant de la 1° B.S.T", 200, 200, { align: "right" });
-
-      // حفظ الملف
-      const fileName = `Certificat_${instructorName.replace(/\s+/g, '_')}_${periodInfo.value.replace(/\s+/g, '_')}.pdf`;
-      doc.save(fileName);
-
+      await exportCertificate(statistics.topPositive, periodInfo);
     } catch (error) {
       console.error("Error exporting certificate:", error);
       alert("Erreur lors de l'exportation du certificat");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleExportTable = async () => {
+    if (!statistics?.instructorStats || statistics.instructorStats.length === 0) {
+      alert("Aucune donnée disponible pour exporter le tableau");
+      return;
+    }
+
+    setExportingTable(true);
+    try {
+      const periodInfo = {
+        period: filterType === "month" ? "mois" : filterType === "year" ? "année" : "jour",
+        value: getFilterDisplayText()
+      };
+      
+      await exportInstructorsTable(statistics.instructorStats, periodInfo, filterType);
+    } catch (error) {
+      console.error("Error exporting table:", error);
+      alert("Erreur lors de l'exportation du tableau");
+    } finally {
+      setExportingTable(false);
     }
   };
 
@@ -306,10 +192,26 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
         <div className="p-6 space-y-6">
           {/* فلاتر الإحصائيات */}
           <div className="bg-muted/30 rounded-lg p-4">
-            <h3 className="text-lg font-medium text-foreground mb-4 flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filtres des Statistiques
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-foreground flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filtres des Statistiques
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleExportTable}
+                  disabled={exportingTable || !statistics?.instructorStats}
+                  className="bg-blue-600 text-white hover:bg-blue-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50 text-sm"
+                >
+                  {exportingTable ? (
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                  ) : (
+                    <Table className="h-4 w-4" />
+                  )}
+                  Exporter Tableau
+                </button>
+              </div>
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* نوع الفلتر */}
@@ -499,7 +401,7 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
                     </div>
                     {filterType !== "day" && statistics.topPositive && (
                       <button
-                        onClick={exportCertificate}
+                        onClick={handleExportCertificate}
                         disabled={exporting}
                         className="bg-green-600 text-white hover:bg-green-700 px-3 py-1 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50 text-sm"
                       >
