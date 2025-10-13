@@ -1,7 +1,8 @@
 // components/Pedagogique/components/ExportRemarkDialog.js
 "use client";
 import React, { useState, useEffect } from "react";
-import { Download, FileText, Table, X, Search, Check, Calendar, User, BookOpen } from "lucide-react";
+import { Download, FileText, X, Search, Check, Calendar, User, BookOpen } from "lucide-react";
+import { formatDateForDisplay } from "@/hooks/dateUtils";
 
 export default function ExportRemarkDialog({
   open,
@@ -23,23 +24,27 @@ export default function ExportRemarkDialog({
 
   // Filtrer les remarques
   const filteredRemarks = remarks.filter(remark => {
+    const remarkData = remark.attributes || remark;
+    const instructeur = remarkData.instructeur?.data || remarkData.instructeur;
+    const subject = remarkData.subject?.data || remarkData.subject;
+    
     const matchesSearch = 
-      (remark.instructeur?.first_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (remark.instructeur?.last_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (remark.subject?.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (remark.content?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+      (instructeur?.first_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (instructeur?.last_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (subject?.title?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (remarkData.content?.toLowerCase() || '').includes(searchQuery.toLowerCase());
 
     const matchesDate = !filters.date || 
-      new Date(remark.date).toLocaleDateString('fr-FR') === new Date(filters.date).toLocaleDateString('fr-FR');
+      formatDateForDisplay(remarkData.date) === formatDateForDisplay(filters.date);
 
     const matchesInstructeur = !filters.instructeur || 
-      remark.instructeur?.documentId === filters.instructeur;
+      (instructeur?.id || instructeur?.documentId) == filters.instructeur;
 
     const matchesSubject = !filters.subject || 
-      remark.subject?.documentId === filters.subject;
+      (subject?.id || subject?.documentId) == filters.subject;
 
     const matchesType = !filters.type || 
-      remark.type === filters.type;
+      remarkData.type === filters.type;
 
     return matchesSearch && matchesDate && matchesInstructeur && matchesSubject && matchesType;
   });
@@ -66,13 +71,7 @@ export default function ExportRemarkDialog({
     setLoading(true);
     try {
       const remarksToExport = remarks.filter(r => selectedRemarks.includes(r.documentId));
-      
-      if (exportType === "pdf") {
-        await exportToPDF(remarksToExport);
-      } else {
-        await exportToExcel(remarksToExport);
-      }
-      
+      await exportToPDF(remarksToExport);
       onClose();
     } catch (error) {
       console.error("Export error:", error);
@@ -82,13 +81,13 @@ export default function ExportRemarkDialog({
   };
 
   const exportToPDF = async (remarksData) => {
-    // Implementation PDF export
-    console.log("Exporting to PDF:", remarksData);
-  };
-
-  const exportToExcel = async (remarksData) => {
-    // Implementation Excel export
-    console.log("Exporting to Excel:", remarksData);
+    try {
+      const { exportRemarksToPDF } = await import("./ExportRemarkPDF");
+      await exportRemarksToPDF(remarksData);
+    } catch (error) {
+      console.error("Error loading PDF export:", error);
+      throw error;
+    }
   };
 
   const clearFilters = () => {
@@ -122,10 +121,10 @@ export default function ExportRemarkDialog({
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Type d'exportation */}
+          {/* Type d'exportation - PDF seulement */}
           <div>
             <h3 className="text-lg font-medium text-foreground mb-4">Type d'exportation</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <button
                 onClick={() => setExportType("pdf")}
                 className={`p-4 border-2 rounded-lg transition-all ${
@@ -144,33 +143,9 @@ export default function ExportRemarkDialog({
                   </div>
                   <div className="flex-1 text-left">
                     <h4 className="font-semibold text-foreground">PDF</h4>
-                    <p className="text-sm text-muted-foreground">Rapport détaillé</p>
+                    <p className="text-sm text-muted-foreground">Rapport détaillé des remarques</p>
                   </div>
                   {exportType === "pdf" && <Check className="h-5 w-5 text-primary" />}
-                </div>
-              </button>
-
-              <button
-                onClick={() => setExportType("excel")}
-                className={`p-4 border-2 rounded-lg transition-all ${
-                  exportType === "excel" 
-                    ? "border-primary bg-primary/10" 
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${
-                    exportType === "excel" ? "bg-green-500/10" : "bg-muted"
-                  }`}>
-                    <Table className={`h-6 w-6 ${
-                      exportType === "excel" ? "text-green-600" : "text-muted-foreground"
-                    }`} />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <h4 className="font-semibold text-foreground">Excel</h4>
-                    <p className="text-sm text-muted-foreground">Données structurées</p>
-                  </div>
-                  {exportType === "excel" && <Check className="h-5 w-5 text-primary" />}
                 </div>
               </button>
             </div>
@@ -274,7 +249,7 @@ export default function ExportRemarkDialog({
                   )}
                   {filters.date && (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs">
-                      Date: {new Date(filters.date).toLocaleDateString('fr-FR')}
+                      Date: {formatDateForDisplay(filters.date)}
                     </span>
                   )}
                   {filters.instructeur && (
@@ -326,47 +301,56 @@ export default function ExportRemarkDialog({
 
             {/* Liste des remarques */}
             <div className="max-h-60 overflow-y-auto border border-border rounded-lg">
-              {filteredRemarks.map((remark) => (
-                <label 
-                  key={remark.documentId}
-                  className="flex items-center gap-3 p-3 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedRemarks.includes(remark.documentId)}
-                    onChange={() => toggleRemarkSelection(remark.documentId)}
-                    className="rounded border-input text-primary focus:ring-primary"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-foreground">
-                        {new Date(remark.date).toLocaleDateString('fr-FR')}
-                      </span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        remark.type === 'positive' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                          : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                      }`}>
-                        {remark.type === 'positive' ? 'Positive' : 'Négative'}
-                      </span>
+              {filteredRemarks.map((remark) => {
+                const remarkData = remark.attributes || remark;
+                const instructeur = remarkData.instructeur?.data || remarkData.instructeur;
+                const subject = remarkData.subject?.data || remarkData.subject;
+                
+                return (
+                  <label 
+                    key={remark.documentId}
+                    className="flex items-center gap-3 p-3 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedRemarks.includes(remark.documentId)}
+                      onChange={() => toggleRemarkSelection(remark.documentId)}
+                      className="rounded border-input text-primary focus:ring-primary"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        <span className="font-medium text-foreground">
+                          {formatDateForDisplay(remarkData.date)}
+                        </span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          remarkData.type === 'positive' 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                        }`}>
+                          {remarkData.type === 'positive' ? 'Positive' : 'Négative'}
+                        </span>
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1 grid grid-cols-2 gap-2">
+                        <span className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          {instructeur?.first_name} {instructeur?.last_name}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <BookOpen className="h-3 w-3" />
+                          {subject?.title || 'Non spécifié'}
+                        </span>
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {remarkData.start_time} - {remarkData.end_time}
+                      </div>
+                      <div className="text-sm text-foreground mt-1">
+                        {remarkData.content}
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground mt-1 grid grid-cols-2 gap-2">
-                      <span className="flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        {remark.instructeur?.first_name} {remark.instructeur?.last_name}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <BookOpen className="h-3 w-3" />
-                        {remark.subject?.title || 'Non spécifié'}
-                      </span>
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      {remark.content}
-                    </div>
-                  </div>
-                </label>
-              ))}
+                  </label>
+                );
+              })}
               
               {filteredRemarks.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
@@ -392,7 +376,7 @@ export default function ExportRemarkDialog({
                 <div className="text-muted-foreground">Période</div>
                 <div className="font-semibold text-foreground">
                   {filteredRemarks.length > 0 
-                    ? `${new Date(Math.min(...filteredRemarks.map(r => new Date(r.date)))).toLocaleDateString('fr-FR')} - ${new Date(Math.max(...filteredRemarks.map(r => new Date(r.date)))).toLocaleDateString('fr-FR')}`
+                    ? `${formatDateForDisplay(Math.min(...filteredRemarks.map(r => new Date(r.attributes?.date || r.date))))} - ${formatDateForDisplay(Math.max(...filteredRemarks.map(r => new Date(r.attributes?.date || r.date))))}`
                     : 'N/A'
                   }
                 </div>

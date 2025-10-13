@@ -1,7 +1,8 @@
 // components/Pedagogique/components/ExportInstructeurDialog.js
 "use client";
 import React, { useState, useEffect } from "react";
-import { Download, FileText, Table, X, Search, Check, User, Award, BookOpen } from "lucide-react";
+import { Download, FileText, X, Search, Check, User, Award, BookOpen } from "lucide-react";
+import { exportInstructeurToPDF } from "./exportInstructeurPdf";
 
 export default function ExportInstructeurDialog({
   open,
@@ -11,7 +12,6 @@ export default function ExportInstructeurDialog({
 }) {
   const [selectedInstructeurs, setSelectedInstructeurs] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [exportType, setExportType] = useState("pdf");
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
     specialite: "",
@@ -78,129 +78,16 @@ export default function ExportInstructeurDialog({
     setLoading(true);
     try {
       const instructeursToExport = instructeurs.filter(i => selectedInstructeurs.includes(i.documentId));
-      
-      if (exportType === "pdf") {
-        await exportToPDF(instructeursToExport);
-      } else {
-        await exportToExcel(instructeursToExport);
-      }
-      
+      await exportInstructeurToPDF(instructeursToExport);
       onClose();
     } catch (error) {
       console.error("Export error:", error);
-      // Utiliser l'alerte personnalisée
       const event = new CustomEvent('showSnackbar', {
         detail: { message: "Erreur lors de l'exportation", severity: 'error' }
       });
       window.dispatchEvent(event);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const exportToPDF = async (instructeursData) => {
-    try {
-      const { jsPDF } = await import("jspdf");
-      const autoTable = await import("jspdf-autotable");
-
-      const doc = new jsPDF();
-      
-      // En-tête
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(16);
-      doc.text("FICHES DES INSTRUCTEURS", doc.internal.pageSize.getWidth() / 2, 20, { align: "center" });
-      
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Date d'exportation: ${new Date().toLocaleDateString('fr-FR')}`, 20, 30);
-      doc.text(`Nombre d'instructeurs: ${instructeursData.length}`, 20, 37);
-
-      let startY = 50;
-
-      instructeursData.forEach((instructeur, index) => {
-        if (startY > 250) {
-          doc.addPage();
-          startY = 20;
-        }
-
-        // Informations de l'instructeur
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text(`Instructeur ${index + 1}: ${instructeur.first_name} ${instructeur.last_name}`, 20, startY);
-
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "normal");
-        doc.text(`MLE: ${instructeur.mle || 'N/A'}`, 20, startY + 7);
-        doc.text(`Grade: ${instructeur.grade || 'Non spécifié'}`, 70, startY + 7);
-        doc.text(`Spécialité: ${instructeur.specialite?.name || 'Aucune'}`, 120, startY + 7);
-        doc.text(`Téléphone: ${instructeur.phone || 'N/A'}`, 20, startY + 14);
-        doc.text(`Adresse: ${instructeur.adress || 'N/A'}`, 20, startY + 21);
-
-        startY += 35;
-
-        // Ligne de séparation
-        if (index < instructeursData.length - 1) {
-          doc.setDrawColor(200, 200, 200);
-          doc.line(15, startY, doc.internal.pageSize.getWidth() - 15, startY);
-          startY += 10;
-        }
-      });
-
-      // Numérotation des pages
-      const pageCount = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Page ${i} sur ${pageCount}`, doc.internal.pageSize.getWidth() / 2, 285, { align: "center" });
-      }
-
-      doc.save(`fiches_instructeurs_${new Date().getTime()}.pdf`);
-    } catch (error) {
-      console.error("PDF export error:", error);
-      throw error;
-    }
-  };
-
-  const exportToExcel = async (instructeursData) => {
-    try {
-      const XLSX = await import('xlsx');
-      
-      const wb = XLSX.utils.book_new();
-      
-      // Données des instructeurs
-      const instructeurData = instructeursData.map(instructeur => ({
-        'Nom': instructeur.last_name || 'N/A',
-        'Prénom': instructeur.first_name || 'N/A',
-        'MLE': instructeur.mle || 'N/A',
-        'Grade': instructeur.grade || 'Non spécifié',
-        'Spécialité': instructeur.specialite?.name || 'Aucune',
-        'Téléphone': instructeur.phone || 'N/A',
-        'Adresse': instructeur.adress || 'N/A'
-      }));
-      
-      const wsInstructeurs = XLSX.utils.json_to_sheet(instructeurData);
-      
-      const colWidths = [
-        { wch: 20 }, // Nom
-        { wch: 15 }, // Prénom
-        { wch: 15 }, // MLE
-        { wch: 20 }, // Grade
-        { wch: 20 }, // Spécialité
-        { wch: 15 }, // Téléphone
-        { wch: 30 }  // Adresse
-      ];
-      wsInstructeurs['!cols'] = colWidths;
-      
-      XLSX.utils.book_append_sheet(wb, wsInstructeurs, "Instructeurs");
-      
-      // Informations du document
-      const now = new Date();
-      const fileName = `fiches_instructeurs_${now.getTime()}.xlsx`;
-      XLSX.writeFile(wb, fileName);
-    } catch (error) {
-      console.error("Excel export error:", error);
-      throw error;
     }
   };
 
@@ -234,57 +121,22 @@ export default function ExportInstructeurDialog({
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Type d'exportation */}
+          {/* Type d'exportation - Only PDF now */}
           <div>
             <h3 className="text-lg font-medium text-foreground mb-4">Type d'exportation</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => setExportType("pdf")}
-                className={`p-4 border-2 rounded-lg transition-all ${
-                  exportType === "pdf" 
-                    ? "border-primary bg-primary/10" 
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
+            <div className="grid grid-cols-1 gap-4">
+              <div className="p-4 border-2 border-primary bg-primary/10 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${
-                    exportType === "pdf" ? "bg-red-500/10" : "bg-muted"
-                  }`}>
-                    <FileText className={`h-6 w-6 ${
-                      exportType === "pdf" ? "text-red-600" : "text-muted-foreground"
-                    }`} />
+                  <div className="p-2 rounded-lg bg-red-500/10">
+                    <FileText className="h-6 w-6 text-red-600" />
                   </div>
                   <div className="flex-1 text-left">
                     <h4 className="font-semibold text-foreground">PDF</h4>
-                    <p className="text-sm text-muted-foreground">Fiches détaillées</p>
+                    <p className="text-sm text-muted-foreground">Fiches détaillées des instructeurs</p>
                   </div>
-                  {exportType === "pdf" && <Check className="h-5 w-5 text-primary" />}
+                  <Check className="h-5 w-5 text-primary" />
                 </div>
-              </button>
-
-              <button
-                onClick={() => setExportType("excel")}
-                className={`p-4 border-2 rounded-lg transition-all ${
-                  exportType === "excel" 
-                    ? "border-primary bg-primary/10" 
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${
-                    exportType === "excel" ? "bg-green-500/10" : "bg-muted"
-                  }`}>
-                    <Table className={`h-6 w-6 ${
-                      exportType === "excel" ? "text-green-600" : "text-muted-foreground"
-                    }`} />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <h4 className="font-semibold text-foreground">Excel</h4>
-                    <p className="text-sm text-muted-foreground">Données structurées</p>
-                  </div>
-                  {exportType === "excel" && <Check className="h-5 w-5 text-primary" />}
-                </div>
-              </button>
+              </div>
             </div>
           </div>
 
@@ -471,7 +323,7 @@ export default function ExportInstructeurDialog({
               </div>
               <div>
                 <div className="text-muted-foreground">Type de fichier</div>
-                <div className="font-semibold text-foreground capitalize">{exportType}</div>
+                <div className="font-semibold text-foreground">PDF</div>
               </div>
               <div>
                 <div className="text-muted-foreground">Spécialités</div>

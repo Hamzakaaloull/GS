@@ -217,7 +217,7 @@ export default function InstructeurTab() {
             className="bg-green-600 text-white hover:bg-green-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
             <Download className="w-4 h-4" />
-            Exporter Fiche
+            Exporter Fiche d'Instructeur
           </button>
           <button 
             onClick={() => handleOpenForm()}
