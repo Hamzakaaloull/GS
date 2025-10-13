@@ -3,6 +3,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { X, TrendingUp, TrendingDown, Award, Frown, Calendar, Filter, Download, Table } from "lucide-react";
 import { exportCertificate } from "./exportCertificate";
+import { exportInstructorsTable } from "./exportInstructorRate";
 
 export default function StatisticsDialog({ open, onClose, remarks, instructeurs }) {
   const [filterType, setFilterType] = useState("month");
@@ -56,7 +57,7 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
       return acc;
     }, { positive: 0, negative: 0, non_specifie: 0 });
 
-    // Count by instructor
+    // Count by instructor and calculate scores
     const instructorStats = {};
     filteredRemarks.forEach(remark => {
       const remarkData = remark.attributes || remark;
@@ -72,7 +73,8 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
             total: 0,
             name: `${instructeur?.first_name} ${instructeur?.last_name}`,
             first_name: instructeur?.first_name,
-            last_name: instructeur?.last_name
+            last_name: instructeur?.last_name,
+            score: 0
           };
         }
         
@@ -82,15 +84,24 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
       }
     });
 
-    // Find top positive and negative instructors
+    // Calculate scores for each instructor
+    Object.values(instructorStats).forEach(instructor => {
+      const totalRemarks = instructor.positive + instructor.negative;
+      instructor.score = totalRemarks > 0 ? (instructor.positive / totalRemarks) * 100 : 0;
+    });
+
     const instructorsArray = Object.values(instructorStats);
-    const topPositive = instructorsArray
-      .filter(instructor => instructor.positive > 0)
-      .sort((a, b) => b.positive - a.positive)[0];
     
-    const topNegative = instructorsArray
-      .filter(instructor => instructor.negative > 0)
-      .sort((a, b) => b.negative - a.negative)[0];
+    // Find top positive (highest score) and top negative (lowest score) instructors
+    const instructorsWithRemarks = instructorsArray.filter(instructor => instructor.total > 0);
+    
+    const topPositive = instructorsWithRemarks.length > 0 
+      ? instructorsWithRemarks.sort((a, b) => b.score - a.score)[0]
+      : null;
+    
+    const topNegative = instructorsWithRemarks.length > 0 
+      ? instructorsWithRemarks.sort((a, b) => a.score - b.score)[0]
+      : null;
 
     return {
       typeCounts,
@@ -98,7 +109,7 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
       topPositive,
       topNegative,
       filteredRemarks,
-      instructorStats: instructorsArray.sort((a, b) => b.positive - a.positive)
+      instructorStats: instructorsArray.sort((a, b) => b.score - a.score)
     };
   }, [remarks, filterType, selectedDate, selectedMonth, selectedYear]);
 
@@ -392,7 +403,7 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
 
               {/* Top instructeurs */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Meilleur instructeur (positif) */}
+                {/* Meilleur instructeur (highest score) */}
                 <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -422,8 +433,11 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
                       <div className="text-sm text-muted-foreground">
                         {statistics.topPositive.positive} remarque(s) positive(s)
                       </div>
+                      <div className="text-sm text-muted-foreground">
+                        {statistics.topPositive.negative} remarque(s) négative(s)
+                      </div>
                       <div className="text-xs text-green-500 dark:text-green-300 mt-2">
-                        {((statistics.topPositive.positive / statistics.topPositive.total) * 100).toFixed(1)}% de remarques positives
+                        Score: {statistics.topPositive.score.toFixed(2)}%
                       </div>
                     </div>
                   ) : (
@@ -431,7 +445,7 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
                   )}
                 </div>
 
-                {/* Instructeur avec le plus de négatifs */}
+                {/* Instructeur avec le score le plus bas */}
                 <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-3">
                     <Frown className="h-6 w-6 text-red-600 dark:text-red-400" />
@@ -443,10 +457,13 @@ export default function StatisticsDialog({ open, onClose, remarks, instructeurs 
                         {statistics.topNegative.name}
                       </div>
                       <div className="text-sm text-muted-foreground">
+                        {statistics.topNegative.positive} remarque(s) positive(s)
+                      </div>
+                      <div className="text-sm text-muted-foreground">
                         {statistics.topNegative.negative} remarque(s) négative(s)
                       </div>
                       <div className="text-xs text-red-500 dark:text-red-300 mt-2">
-                        {((statistics.topNegative.negative / statistics.topNegative.total) * 100).toFixed(1)}% de remarques négatives
+                        Score: {statistics.topNegative.score.toFixed(2)}%
                       </div>
                     </div>
                   ) : (
